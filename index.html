@@ -111,7 +111,7 @@
                 <button class="symbol-btn" onclick="insertSymbol('x7', true)">x7</button>
                 <button class="symbol-btn" onclick="insertSymbol('x8', true)">x8</button>
                 <button class="symbol-btn" onclick="insertSymbol('x9', true)">x9</button>
-                <button class="symbol-btn" style="background-color: #991b1b; border-color: #b91c1c; grid-column: span 4; margin-top: 5px;" onclick="clearCell()">Borrar</button>
+                <button class="symbol-btn" style="background-color: #991b1b; border-color: #b91c1c; grid-column: span 4; margin-top: 5px;" onclick="clearAllCells()">Limpiar Lienzo</button>
             </div>
         </div>
 
@@ -121,7 +121,7 @@
     <!-- ÁREA DE TRABAJO -->
     <div class="main-content">
         <div class="paper" id="sheetPaper">
-            <div class="sheet-title" contenteditable="true">GORRION</div>
+            <div class="sheet-title" id="sheetTitle" contenteditable="true">GORRION</div>
             <div class="rows-container" id="rowsContainer"></div>
         </div>
     </div>
@@ -133,7 +133,9 @@
         const maxRows = 9;
 
         const rowsContainer = document.getElementById('rowsContainer');
+        const sheetTitle = document.getElementById('sheetTitle');
         
+        // Crear filas y celdas
         for (let i = 0; i < 10; i++) {
             const row = document.createElement('div');
             row.className = 'sheet-row';
@@ -141,7 +143,9 @@
             const label = document.createElement('div');
             label.className = 'row-label';
             label.contentEditable = "true";
+            label.dataset.rowIndex = i;
             label.textContent = defaultLabels[i] || "";
+            label.addEventListener('input', saveState);
             row.appendChild(label);
 
             const cellsContainer = document.createElement('div');
@@ -159,6 +163,8 @@
             row.appendChild(cellsContainer);
             rowsContainer.appendChild(row);
         }
+
+        sheetTitle.addEventListener('input', saveState);
 
         function selectCell(cell) {
             if (selectedCell) selectedCell.classList.remove('selected');
@@ -179,6 +185,7 @@
                     selectedCell.appendChild(subNum);
                 }
                 subNum.textContent = e.key;
+                saveState();
                 return;
             }
 
@@ -221,6 +228,8 @@
             else if (type === 'end-bracket') { selectedCell.innerHTML = `<span class="bar-char">|</span><span class="bracket-box right-bracket"></span>`; selectedCell.classList.add('is-end-bracket'); }
             else if (type === 'only-start-bracket') { selectedCell.innerHTML = `<span class="bracket-box left-bracket"></span>`; selectedCell.classList.add('is-only-start-bracket'); }
             else if (type === 'only-end-bracket') { selectedCell.innerHTML = `<span class="bracket-box right-bracket"></span>`; selectedCell.classList.add('is-only-end-bracket'); }
+            
+            saveState();
             moveToNext();
         }
 
@@ -230,7 +239,6 @@
             let currentRow = parseInt(selectedCell.dataset.row);
             let currentCol = parseInt(selectedCell.dataset.col);
 
-            // Si es un acorde de 2 o más caracteres y estamos en la última celda de la fila, salta automáticamente a la siguiente fila
             const shouldJump = !isPower && symbol.length >= 2;
 
             if (shouldJump && currentCol === maxCols) {
@@ -264,6 +272,7 @@
                 if (symbol === '|') selectedCell.classList.add('is-bar');
             }
 
+            saveState();
             if (symbol !== '←') moveToNext();
         }
 
@@ -271,6 +280,20 @@
             if (!selectedCell) return;
             selectedCell.className = 'cell selected';
             selectedCell.innerHTML = '';
+            saveState();
+        }
+
+        // --- BORRAR SOLO LO DE LA DERECHA (LIENZO) ---
+        function clearAllCells() {
+            if (confirm("¿Estás seguro de que deseas borrar todas las notas del lienzo?")) {
+                const allCells = document.querySelectorAll('.cell');
+                allCells.forEach(cell => {
+                    cell.className = 'cell';
+                    cell.innerHTML = '';
+                });
+                if (selectedCell) selectCell(selectedCell);
+                saveState();
+            }
         }
 
         function moveToNext() {
@@ -281,6 +304,65 @@
                 selectedCell = null;
             }
         }
+
+        // --- LOCALSTORAGE (GUARDAR / CARGAR) ---
+        function saveState() {
+            const data = {
+                title: sheetTitle.textContent,
+                labels: [],
+                cells: []
+            };
+
+            document.querySelectorAll('.row-label').forEach(label => {
+                data.labels.push(label.textContent);
+            });
+
+            document.querySelectorAll('.cell').forEach(cell => {
+                if (cell.innerHTML.trim() !== '') {
+                    data.cells.push({
+                        row: cell.dataset.row,
+                        col: cell.dataset.col,
+                        className: cell.className.replace('selected', '').trim(),
+                        html: cell.innerHTML
+                    });
+                }
+            });
+
+            localStorage.setItem('sheetData_v2', JSON.stringify(data));
+        }
+
+        function loadState() {
+            const saved = localStorage.getItem('sheetData_v2');
+            if (!saved) return;
+
+            try {
+                const data = JSON.parse(saved);
+                
+                if (data.title) sheetTitle.textContent = data.title;
+
+                if (data.labels) {
+                    const labelDivs = document.querySelectorAll('.row-label');
+                    data.labels.forEach((text, i) => {
+                        if (labelDivs[i]) labelDivs[i].textContent = text;
+                    });
+                }
+
+                if (data.cells) {
+                    data.cells.forEach(cData => {
+                        const cell = document.querySelector(`.cell[data-row="${cData.row}"][data-col="${cData.col}"]`);
+                        if (cell) {
+                            cell.className = cData.className;
+                            cell.innerHTML = cData.html;
+                        }
+                    });
+                }
+            } catch (e) {
+                console.error("Error al cargar autoguardado:", e);
+            }
+        }
+
+        // Cargar datos al iniciar la página
+        loadState();
 
         // --- EXPORTAR A PDF ---
         function exportToPDF() {
