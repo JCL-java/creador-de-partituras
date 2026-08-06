@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editor de Anotaciones Musicales - Pulido</title>
+    <!-- html2pdf.js para exportación directa -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; }
+        html, body { background-color: #0b0f19; color: #ffffff; display: flex; height: 100vh; width: 100vw; overflow: hidden; }
+        .sidebar { width: 360px; min-width: 360px; background-color: #111827; border-right: 1px solid #1f2937; padding: 22px; display: flex; flex-direction: column; gap: 22px; overflow-y: auto; z-index: 10; }
+        .sidebar h3 { font-size: 0.9rem; color: #6b7280; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
+        .palette-group { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+        .symbol-btn { background-color: #1f2937; color: #f3f4f6; border: 1px solid #374151; padding: 14px 6px; min-height: 52px; border-radius: 6px; font-weight: bold; font-size: 1.1rem; cursor: pointer; text-align: center; user-select: none; display: flex; align-items: center; justify-content: center; }
+        .symbol-btn:hover { background-color: #2563eb; border-color: #3b82f6; }
+        .export-btn { margin-top: auto; background-color: #059669; color: white; border: none; padding: 18px; border-radius: 8px; font-size: 1.2rem; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .export-btn:hover { background-color: #047857; }
+        .main-content { flex: 1; padding: 20px; background-color: #0b0f19; overflow: auto; display: flex; justify-content: center; align-items: center; height: 100vh; box-sizing: border-box; }
+        .paper { background-color: #000000 !important; color: #ffffff; width: 100%; max-width: 1550px; min-width: 1200px; height: 100%; padding: 25px 45px 35px 45px; border: 2px solid #1e293b; border-radius: 4px; display: flex; flex-direction: column; box-sizing: border-box; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6); overflow: hidden; }
+        .sheet-title { text-align: center; font-size: 2.0rem; font-weight: 900; outline: none; margin-bottom: 12px; text-transform: uppercase; color: #FFFFFF; letter-spacing: 1px; line-height: 1; }
+        .rows-container { display: grid; grid-template-rows: repeat(10, 1fr); flex: 1; overflow: hidden; margin-top: 10px; }
+        .sheet-row { display: flex; align-items: center; width: 100%; height: 100%; gap: 8px; position: relative; }
+        .row-label { width: 130px; min-width: 130px; max-width: 130px; font-weight: 700; font-size: 1.5rem; outline: none; border-bottom: none; padding-right: 4px; color: #FFFFFF; white-space: nowrap; overflow: hidden; transition: background-color 0.2s; }
+        .row-label:focus { background-color: #1f2937; color: #FFFFFF; outline: none; }
+        .row-cells { display: grid; grid-template-columns: repeat(32, minmax(0, 1fr)); align-items: center; flex: 1; height: 100%; gap: 4px; margin-left: 10px; }
+        .cell { height: 100%; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 2rem; letter-spacing: -0.5px; cursor: pointer; user-select: none; position: relative; color: #FFFFFF; white-space: nowrap; overflow: visible; border-bottom: none; }
+        .cell.is-long-chord { font-size: 1.85rem !important; letter-spacing: -0.0px !important; }
+        .cell:hover { background-color: #0047A3; }
+        .cell.selected::after { content: ''; position: absolute; bottom: 15px; left: 0; width: 100%; height: 3px; background-color: #FF0000; animation: blink-cursor 1s step-end infinite; }
+        @keyframes blink-cursor { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+        .bracket-box { display: inline-block; width: 10px; height: 55px; flex-shrink: 0; position: relative; }
+        .bracket-box.left-bracket { border-left: 4px solid #FFFFFF; border-top: 4px solid #FFFFFF; border-bottom: 4px solid #FFFFFF; }
+        .bracket-box.right-bracket { border-right: 4px solid #FFFFFF; border-top: 4px solid #FFFFFF; border-bottom: 4px solid #FFFFFF; }
+        .cell.is-start-bracket, .cell.is-only-start-bracket, .cell.is-end-bracket, .cell.is-only-end-bracket { justify-content: center; gap: 4px; }
+        .cell .bar-char { font-size: 2.4rem; font-weight: 700; margin: 0; line-height: 1; }
+        .cell.is-bar { font-size: 2.4rem !important; font-weight: 700 !important; }
+        .cell.is-power { position: relative; }
+        .cell.is-power .power-num { position: absolute; top: 2px; left: 3px; font-size: 1.2rem; font-weight: 900; line-height: 1; }
+        .cell.is-left-arrow-container { display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1; }
+        .cell.is-left-arrow-container .arrow-subnum { font-size: 1.3rem; font-weight: 900; margin-top: -3px; }
+    </style>
+</head>
+<body>
+
+    <!-- PALETA DE HERRAMIENTAS LATERAL -->
+    <div class="sidebar">
+        <div>
+            <h3>Acordes</h3>
+            <div class="palette-group">
+                <button class="symbol-btn" onclick="insertSymbol('C')">C</button>
+                <button class="symbol-btn" onclick="insertSymbol('Cm')">Cm</button>
+                <button class="symbol-btn" onclick="insertSymbol('C#m')">C#m</button>
+                <button class="symbol-btn" onclick="insertSymbol('D')">D</button>
+                <button class="symbol-btn" onclick="insertSymbol('Dm')">Dm</button>
+                <button class="symbol-btn" onclick="insertSymbol('D#m')">D#m</button>
+                <button class="symbol-btn" onclick="insertSymbol('E')">E</button>
+                <button class="symbol-btn" onclick="insertSymbol('Em')">Em</button>
+                <button class="symbol-btn" onclick="insertSymbol('F')">F</button>
+                <button class="symbol-btn" onclick="insertSymbol('Fm')">Fm</button>
+                <button class="symbol-btn" onclick="insertSymbol('F#m')">F#m</button>
+                <button class="symbol-btn" onclick="insertSymbol('G')">G</button>
+                <button class="symbol-btn" onclick="insertSymbol('Gm')">Gm</button>
+                <button class="symbol-btn" onclick="insertSymbol('G#m')">G#m</button>
+                <button class="symbol-btn" onclick="insertSymbol('A')">A</button>
+                <button class="symbol-btn" onclick="insertSymbol('Am')">Am</button>
+                <button class="symbol-btn" onclick="insertSymbol('A#m')">A#m</button>
+                <button class="symbol-btn" onclick="insertSymbol('B')">B</button>
+                <button class="symbol-btn" onclick="insertSymbol('Bm')">Bm</button>
+            </div>
+        </div>
+
+        <div>
+            <h3>Símbolos Especiales</h3>
+            <div class="palette-group">
+                <button class="symbol-btn" onclick="insertSpecial('only-start-bracket')">[</button>
+                <button class="symbol-btn" onclick="insertSpecial('only-end-bracket')">]</button>
+                <button class="symbol-btn" onclick="insertSpecial('start-bracket')">[|</button>
+                <button class="symbol-btn" onclick="insertSpecial('end-bracket')">|]</button>
+                <button class="symbol-btn" onclick="insertSymbol('|')">|</button>
+                <button class="symbol-btn" onclick="insertSymbol('%')">
+                    <svg width="20" height="20" viewBox="0 0 24 24">
+                        <circle cx="6.5" cy="7.5" r="3.5" fill="#FFFFFF"/>
+                        <circle cx="17.5" cy="16.5" r="3.5" fill="#FFFFFF"/>
+                        <line x1="4" y1="21" x2="20" y2="3" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round"/>
+                    </svg>
+                </button>
+                <button class="symbol-btn" onclick="insertSymbol('↑')">
+                    <svg width="20" height="20" viewBox="0 0 24 24">
+                        <line x1="12" y1="22" x2="12" y2="4" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round"/>
+                        <polyline points="5,11 12,4 19,11" fill="none" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
+                <button class="symbol-btn" onclick="insertSymbol('←')">
+                    <svg width="22" height="22" viewBox="0 0 24 24">
+                        <line x1="20" y1="12" x2="4" y2="12" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round"/>
+                        <polyline points="11,5 4,12 11,19" fill="none" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <div>
+            <h3>Repeticiones</h3>
+            <div class="palette-group">
+                <button class="symbol-btn" onclick="insertSymbol('x2', true)">x2</button>
+                <button class="symbol-btn" onclick="insertSymbol('x3', true)">x3</button>
+                <button class="symbol-btn" onclick="insertSymbol('x4', true)">x4</button>
+                <button class="symbol-btn" onclick="insertSymbol('x5', true)">x5</button>
+                <button class="symbol-btn" onclick="insertSymbol('x6', true)">x6</button>
+                <button class="symbol-btn" onclick="insertSymbol('x7', true)">x7</button>
+                <button class="symbol-btn" onclick="insertSymbol('x8', true)">x8</button>
+                <button class="symbol-btn" onclick="insertSymbol('x9', true)">x9</button>
+                <button class="symbol-btn" style="background-color: #991b1b; border-color: #b91c1c; grid-column: span 4; margin-top: 5px;" onclick="clearCell()">Borrar</button>
+            </div>
+        </div>
+
+        <button class="export-btn" onclick="exportToPDF()">📄 Descargar PDF</button>
+    </div>
+
+    <!-- ÁREA DE TRABAJO -->
+    <div class="main-content">
+        <div class="paper" id="sheetPaper">
+            <div class="sheet-title" contenteditable="true">GORRION</div>
+            <div class="rows-container" id="rowsContainer"></div>
+        </div>
+    </div>
+
+    <script>
+        let selectedCell = null;
+        const defaultLabels = ["1ra", "2da", "3era", "4ta", "5ta", "6xta","7tma", "8tva", "9na", "10ima"];
+        const maxCols = 31;
+        const maxRows = 9;
+
+        const rowsContainer = document.getElementById('rowsContainer');
+        
+        for (let i = 0; i < 10; i++) {
+            const row = document.createElement('div');
+            row.className = 'sheet-row';
+
+            const label = document.createElement('div');
+            label.className = 'row-label';
+            label.contentEditable = "true";
+            label.textContent = defaultLabels[i] || "";
+            row.appendChild(label);
+
+            const cellsContainer = document.createElement('div');
+            cellsContainer.className = 'row-cells';
+
+            for (let j = 0; j <= maxCols; j++) {
+                const cell = document.createElement('div');
+                cell.className = 'cell';
+                cell.dataset.row = i;
+                cell.dataset.col = j;
+                cell.addEventListener('click', () => selectCell(cell));
+                cellsContainer.appendChild(cell);
+            }
+
+            row.appendChild(cellsContainer);
+            rowsContainer.appendChild(row);
+        }
+
+        function selectCell(cell) {
+            if (selectedCell) selectedCell.classList.remove('selected');
+            selectedCell = cell;
+            selectedCell.classList.add('selected');
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (document.activeElement && document.activeElement.isContentEditable) return;
+            if (!selectedCell) return;
+
+            if (selectedCell.classList.contains('is-left-arrow-container') && /^[0-9]$/.test(e.key)) {
+                e.preventDefault();
+                let subNum = selectedCell.querySelector('.arrow-subnum');
+                if (!subNum) {
+                    subNum = document.createElement('span');
+                    subNum.className = 'arrow-subnum';
+                    selectedCell.appendChild(subNum);
+                }
+                subNum.textContent = e.key;
+                return;
+            }
+
+            let currentRow = parseInt(selectedCell.dataset.row);
+            let currentCol = parseInt(selectedCell.dataset.col);
+            let moved = false;
+
+            if (e.key === 'Backspace') {
+                e.preventDefault();
+                if (selectedCell.innerHTML === '') {
+                    if (currentCol > 0) {
+                        currentCol--;
+                        const target = document.querySelector(`.cell[data-row="${currentRow}"][data-col="${currentCol}"]`);
+                        if (target) { selectCell(target); clearCell(); }
+                    }
+                } else { clearCell(); }
+                return;
+            } else if (e.key === 'Delete') {
+                e.preventDefault(); clearCell(); return;
+            }
+
+            if (e.key === ' ' || e.code === 'Space') { e.preventDefault(); if (currentCol < maxCols) currentCol++; moved = true; }
+            else if (e.key === 'ArrowRight') { e.preventDefault(); if (currentCol < maxCols) currentCol++; moved = true; }
+            else if (e.key === 'ArrowLeft') { e.preventDefault(); if (currentCol > 0) currentCol--; moved = true; }
+            else if (e.key === 'ArrowDown') { e.preventDefault(); if (currentRow < maxRows) currentRow++; moved = true; }
+            else if (e.key === 'ArrowUp') { e.preventDefault(); if (currentRow > 0) currentRow--; moved = true; }
+            else if (e.key === 'Enter') { e.preventDefault(); if (currentRow < maxRows) { currentRow++; currentCol = 0; } moved = true; }
+
+            if (moved) {
+                const nextTarget = document.querySelector(`.cell[data-row="${currentRow}"][data-col="${currentCol}"]`);
+                if (nextTarget) selectCell(nextTarget);
+            }
+        });
+
+        function insertSpecial(type) {
+            if (!selectedCell) return;
+            selectedCell.className = 'cell selected';
+            
+            if (type === 'start-bracket') { selectedCell.innerHTML = `<span class="bracket-box left-bracket"></span><span class="bar-char">|</span>`; selectedCell.classList.add('is-start-bracket'); }
+            else if (type === 'end-bracket') { selectedCell.innerHTML = `<span class="bar-char">|</span><span class="bracket-box right-bracket"></span>`; selectedCell.classList.add('is-end-bracket'); }
+            else if (type === 'only-start-bracket') { selectedCell.innerHTML = `<span class="bracket-box left-bracket"></span>`; selectedCell.classList.add('is-only-start-bracket'); }
+            else if (type === 'only-end-bracket') { selectedCell.innerHTML = `<span class="bracket-box right-bracket"></span>`; selectedCell.classList.add('is-only-end-bracket'); }
+            moveToNext();
+        }
+
+        function insertSymbol(symbol, isPower = false) {
+            if (!selectedCell) return;
+
+            let currentRow = parseInt(selectedCell.dataset.row);
+            let currentCol = parseInt(selectedCell.dataset.col);
+
+            // Si es un acorde de 2 o más caracteres y estamos en la última celda de la fila, salta automáticamente a la siguiente fila
+            const shouldJump = !isPower && symbol.length >= 2;
+
+            if (shouldJump && currentCol === maxCols) {
+                if (currentRow < maxRows) {
+                    const nextRowCell = document.querySelector(`.cell[data-row="${currentRow + 1}"][data-col="0"]`);
+                    if (nextRowCell) {
+                        selectCell(nextRowCell);
+                        currentRow = parseInt(selectedCell.dataset.row);
+                        currentCol = parseInt(selectedCell.dataset.col);
+                    }
+                }
+            }
+
+            selectedCell.className = 'cell selected';
+
+            if (isPower) {
+                selectedCell.innerHTML = `<span class="power-num">${symbol}</span>`;
+                selectedCell.classList.add('is-power');
+            } else if (symbol === '%') {
+                selectedCell.innerHTML = `<svg class="repeat-svg" width="34" height="34" viewBox="0 0 24 24"><circle cx="6.5" cy="7.5" r="3.5" fill="#FFFFFF"/><circle cx="17.5" cy="16.5" r="3.5" fill="#FFFFFF"/><line x1="4" y1="21" x2="20" y2="3" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round"/></svg>`;
+                selectedCell.classList.add('is-repeat');
+            } else if (symbol === '↑') {
+                selectedCell.innerHTML = `<svg class="arrow-svg" width="32" height="32" viewBox="0 0 24 24"><line x1="12" y1="22" x2="12" y2="4" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round"/><polyline points="5,11 12,4 19,11" fill="none" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+                selectedCell.classList.add('is-arrow');
+            } else if (symbol === '←') {
+                selectedCell.innerHTML = `<svg class="arrow-svg" width="28" height="24" viewBox="0 0 24 24"><line x1="20" y1="12" x2="4" y2="12" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round"/><polyline points="11,5 4,12 11,19" fill="none" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="arrow-subnum"></span>`;
+                selectedCell.classList.add('is-left-arrow-container');
+            } else {
+                selectedCell.textContent = symbol;
+                if (symbol.length >= 3) selectedCell.classList.add('is-long-chord');
+                if (symbol === '|') selectedCell.classList.add('is-bar');
+            }
+
+            if (symbol !== '←') moveToNext();
+        }
+
+        function clearCell() {
+            if (!selectedCell) return;
+            selectedCell.className = 'cell selected';
+            selectedCell.innerHTML = '';
+        }
+
+        function moveToNext() {
+            const nextCell = selectedCell.nextElementSibling;
+            if (nextCell) selectCell(nextCell);
+            else {
+                selectedCell.classList.remove('selected');
+                selectedCell = null;
+            }
+        }
+
+        // --- EXPORTAR A PDF ---
+        function exportToPDF() {
+            if (selectedCell) selectedCell.classList.remove('selected');
+            const originalPaper = document.getElementById('sheetPaper');
+            const titleText = document.querySelector('.sheet-title').textContent.trim() || 'GORRION';
+            
+            const exportWidth = 1600;
+            const exportHeight = 1131;
+
+            const cloneContainer = document.createElement('div');
+            cloneContainer.style.position = 'fixed'; 
+            cloneContainer.style.left = '-9999px'; 
+            cloneContainer.style.top = '-9999px'; 
+            cloneContainer.style.width = exportWidth + 'px'; 
+            cloneContainer.style.height = exportHeight + 'px';
+            cloneContainer.style.backgroundColor = '#000000';
+            cloneContainer.style.margin = '0';
+            cloneContainer.style.padding = '0';
+            
+            const clonedPaper = originalPaper.cloneNode(true);
+            clonedPaper.style.width = exportWidth + 'px'; 
+            clonedPaper.style.height = exportHeight + 'px'; 
+            clonedPaper.style.maxWidth = 'none'; 
+            clonedPaper.style.maxHeight = 'none'; 
+            clonedPaper.style.padding = '35px 50px'; 
+            clonedPaper.style.backgroundColor = '#000000';
+            clonedPaper.style.border = 'none';
+            clonedPaper.style.margin = '0';
+            
+            cloneContainer.appendChild(clonedPaper); 
+            document.body.appendChild(cloneContainer);
+            
+            const opt = { 
+                margin: 0, 
+                filename: `${titleText.replace(/\s+/g, '_')}.pdf`, 
+                image: { type: 'jpeg', quality: 1.0 }, 
+                html2canvas: { 
+                    scale: 2, 
+                    useCORS: true, 
+                    width: exportWidth, 
+                    height: exportHeight, 
+                    backgroundColor: '#000000',
+                    scrollX: 0,
+                    scrollY: 0
+                }, 
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' } 
+            };
+            
+            html2pdf().set(opt).from(clonedPaper).save().then(() => { 
+                document.body.removeChild(cloneContainer); 
+            });
+        }
+    </script>
+</body>
+</html>
