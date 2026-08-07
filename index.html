@@ -3,35 +3,229 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Editor de Anotaciones Musicales - Pulido</title>
-    <!-- html2pdf.js para exportación directa -->
+    <title>Editor de Anotaciones Musicales</title>
+    <!-- Librería para exportación a PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+    <!-- ==========================================================================
+         1. ESTILOS CSS (AQUÍ CAMBIAS COLORES Y TAMAÑOS)
+         ========================================================================== -->
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; }
-        html, body { background-color: #0b0f19; color: #ffffff; display: flex; height: 100vh; width: 100vw; overflow: hidden; }
-        .sidebar { width: 360px; min-width: 360px; background-color: #111827; border-right: 1px solid #1f2937; padding: 22px; display: flex; flex-direction: column; gap: 22px; overflow-y: auto; z-index: 10; }
-        .sidebar h3 { font-size: 0.9rem; color: #6b7280; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
-        .palette-group { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
-        .symbol-btn { background-color: #1f2937; color: #f3f4f6; border: 1px solid #374151; padding: 14px 6px; min-height: 52px; border-radius: 6px; font-weight: bold; font-size: 1.1rem; cursor: pointer; text-align: center; user-select: none; display: flex; align-items: center; justify-content: center; }
-        .symbol-btn:hover { background-color: #2563eb; border-color: #3b82f6; }
-        .export-btn { margin-top: auto; background-color: #059669; color: white; border: none; padding: 18px; border-radius: 8px; font-size: 1.2rem; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; }
-        .export-btn:hover { background-color: #047857; }
-        .main-content { flex: 1; padding: 20px; background-color: #0b0f19; overflow: auto; display: flex; justify-content: center; align-items: center; height: 100vh; box-sizing: border-box; }
-        .paper { background-color: #000000 !important; color: #ffffff; width: 100%; max-width: 1550px; min-width: 1200px; height: 100%; padding: 25px 45px 35px 45px; border: 2px solid #1e293b; border-radius: 4px; display: flex; flex-direction: column; box-sizing: border-box; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6); overflow: hidden; }
-        .sheet-title { text-align: center; font-size: 2.0rem; font-weight: 900; outline: none; margin-bottom: 12px; text-transform: uppercase; color: #FFFFFF; letter-spacing: 1px; line-height: 1; }
-        .rows-container { display: grid; grid-template-rows: repeat(10, 1fr); flex: 1; overflow: hidden; margin-top: 10px; }
-        .sheet-row { display: flex; align-items: center; width: 100%; height: 100%; gap: 8px; position: relative; }
-        .row-label { width: 130px; min-width: 130px; max-width: 130px; font-weight: 700; font-size: 1.5rem; outline: none; border-bottom: none; padding-right: 4px; color: #FFFFFF; white-space: nowrap; overflow: hidden; transition: background-color 0.2s; }
-        .row-label:focus { background-color: #1f2937; color: #FFFFFF; outline: none; }
-        .row-cells { display: grid; grid-template-columns: repeat(32, minmax(0, 1fr)); align-items: center; flex: 1; height: 100%; gap: 4px; margin-left: 10px; }
-        .cell { height: 100%; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 2rem; letter-spacing: -0.5px; cursor: pointer; user-select: none; position: relative; color: #FFFFFF; white-space: nowrap; overflow: visible; border-bottom: none; }
-        .cell.is-long-chord { font-size: 1.85rem !important; letter-spacing: -0.0px !important; }
-        .cell:hover { background-color: #0047A3; }
-        .cell.selected::after { content: ''; position: absolute; bottom: 15px; left: 0; width: 100%; height: 3px; background-color: #FF0000; animation: blink-cursor 1s step-end infinite; }
+        /* --- ESTILOS GENERALES Y FONDO --- */
+        * { 
+            box-sizing: border-box; 
+            margin: 0; 
+            padding: 0; 
+            font-family: 'Segoe UI', Arial, sans-serif; 
+        }
+        html, body { 
+            background-color: #0b0f19; /* 🎨 CAMBIAR: Fondo general de la aplicación */
+            color: #ffffff;            /* 🎨 CAMBIAR: Color de texto general */
+            display: flex; 
+            height: 100vh; 
+            width: 100vw; 
+            overflow: hidden; 
+        }
+
+        /* --- BARRA LATERAL (SIDEBAR) --- */
+        .sidebar { 
+            width: 360px; 
+            min-width: 360px; 
+            background-color: #111827; /* 🎨 CAMBIAR: Fondo del menú lateral */
+            border-right: 1px solid #1f2937; /* 🎨 CAMBIAR: Borde del menú lateral */
+            padding: 22px; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 22px; 
+            overflow-y: auto; 
+            z-index: 10; 
+        }
+        .sidebar h3 { 
+            font-size: 0.9rem; 
+            color: #6b7280; /* 🎨 CAMBIAR: Color de los subtítulos del menú */
+            text-transform: uppercase; 
+            letter-spacing: 1px; 
+            margin-bottom: 12px; 
+        }
+        .palette-group { 
+            display: grid; 
+            grid-template-columns: repeat(4, 1fr); 
+            gap: 10px; 
+        }
+
+        /* --- BOTONES DE LA PALETA --- */
+        .symbol-btn { 
+            background-color: #1f2937; /* 🎨 CAMBIAR: Fondo de botones de acordes */
+            color: #f3f4f6;            /* 🎨 CAMBIAR: Color de texto de acordes */
+            border: 1px solid #374151;  /* 🎨 CAMBIAR: Borde de botones */
+            padding: 14px 6px; 
+            min-height: 52px; 
+            border-radius: 6px; 
+            font-weight: bold; 
+            font-size: 1.1rem; 
+            cursor: pointer; 
+            text-align: center; 
+            user-select: none; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+        }
+        .symbol-btn:hover { 
+            background-color: #2563eb; /* 🎨 CAMBIAR: Color al pasar el ratón (Hover) */
+            border-color: #3b82f6; 
+        }
+
+        /* --- BOTÓN DESCARGAR PDF --- */
+        .export-btn { 
+            margin-top: auto; 
+            background-color: #059669; /* 🎨 CAMBIAR: Fondo botón PDF */
+            color: white; 
+            border: none; 
+            padding: 18px; 
+            border-radius: 8px; 
+            font-size: 1.2rem; 
+            font-weight: bold; 
+            cursor: pointer; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            gap: 8px; 
+        }
+        .export-btn:hover { 
+            background-color: #047857; /* 🎨 CAMBIAR: Hover botón PDF */
+        }
+
+        /* --- CONTENEDOR PRINCIPAL Y LIENZO (PAPEL NEGRO) --- */
+        .main-content { 
+            flex: 1; 
+            padding: 20px; 
+            background-color: #0b0f19; /* 🎨 CAMBIAR: Fondo detrás de la hoja */
+            overflow: auto; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            height: 100vh; 
+            box-sizing: border-box; 
+        }
+        .paper { 
+            background-color: #000000 !important; /* 🎨 CAMBIAR: Fondo del lienzo/hoja */
+            color: #ffffff;            /* 🎨 CAMBIAR: Color predeterminado de texto de la hoja */
+            width: 100%; 
+            max-width: 1550px; 
+            min-width: 1200px; 
+            height: 100%; 
+            padding: 25px 45px 35px 45px; 
+            border: 2px solid #1e293b; /* 🎨 CAMBIAR: Borde exterior de la hoja */
+            border-radius: 4px; 
+            display: flex; 
+            flex-direction: column; 
+            box-sizing: border-box; 
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6); 
+            overflow: hidden; 
+        }
+
+        /* ==========================================================================
+           📌 📐 TÍTULO DE LA HOJA (MODIFICA EL TAMAÑO AQUÍ)
+           ========================================================================== */
+        .sheet-title { 
+            text-align: center; 
+            font-size: 2.0rem;       /* 📐 CAMBIAR AQUÍ EL TAMAÑO DEL TÍTULO (ej. 2.5rem, 30px) */
+            font-weight: 900;        /* 📐 Grosor de la letra (100 a 900) */
+            outline: none; 
+            margin-bottom: 12px; 
+            text-transform: uppercase; 
+            color: #FFFFFF;          /* 🎨 CAMBIAR: Color del título */
+            letter-spacing: 1px;     /* Espaciado entre letras */
+            line-height: 1; 
+        }
+
+        /* --- FILAS Y CELDAS --- */
+        .rows-container { 
+            display: grid; 
+            grid-template-rows: repeat(10, 1fr); 
+            flex: 1; 
+            overflow: hidden; 
+            margin-top: 10px; 
+        }
+        .sheet-row { 
+            display: flex; 
+            align-items: center; 
+            width: 100%; 
+            height: 100%; 
+            gap: 8px; 
+            position: relative; 
+        }
+        .row-label { 
+            width: 130px; 
+            min-width: 130px; 
+            max-width: 130px; 
+            font-weight: 700; 
+            font-size: 1.5rem; /* 📐 Tamaños de las etiquetas (1ra, 2da...) */
+            outline: none; 
+            border-bottom: none; 
+            padding-right: 4px; 
+            color: inherit; 
+            white-space: nowrap; 
+            overflow: hidden; 
+            transition: background-color 0.2s; 
+        }
+        .row-label:focus { 
+            background-color: #1f2937; /* 🎨 Fondo al editar la etiqueta de fila */
+            outline: none; 
+        }
+        .row-cells { 
+            display: grid; 
+            grid-template-columns: repeat(32, minmax(0, 1fr)); 
+            align-items: center; 
+            flex: 1; 
+            height: 100%; 
+            gap: 4px; 
+            margin-left: 10px; 
+        }
+        .cell { 
+            height: 100%; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            font-weight: 900; 
+            font-size: 2rem; 
+            letter-spacing: -0.5px; 
+            cursor: pointer; 
+            user-select: none; 
+            position: relative; 
+            color: inherit; 
+            white-space: nowrap; 
+            overflow: visible; 
+            border-bottom: none; 
+        }
+        .cell.is-long-chord { 
+            font-size: 1.85rem !important; 
+            letter-spacing: -0.0px !important; 
+        }
+        .cell:hover { 
+            background-color: #0047A3; /* 🎨 CAMBIAR: Color azul al pasar el ratón por las celdas */
+        }
+
+        /* --- INDICADOR DE CURSOR EN LA CELDA SELECCIONADA --- */
+        .cell.selected::after { 
+            content: ''; 
+            position: absolute; 
+            bottom: 15px; 
+            left: 0; 
+            width: 100%; 
+            height: 3px; 
+            background-color: #FF0000; /* 🎨 CAMBIAR: Color de la barra parpadeante de selección */
+            animation: blink-cursor 1s step-end infinite; 
+        }
         @keyframes blink-cursor { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+        
+        /* HERENCIA DE COLOR DE SVG EN CELDAS */
+        .cell svg circle, .cell svg line, .cell svg polyline { fill: currentColor; stroke: currentColor; }
+        .cell svg polyline { fill: none; }
+
         .bracket-box { display: inline-block; width: 10px; height: 55px; flex-shrink: 0; position: relative; }
-        .bracket-box.left-bracket { border-left: 4px solid #FFFFFF; border-top: 4px solid #FFFFFF; border-bottom: 4px solid #FFFFFF; }
-        .bracket-box.right-bracket { border-right: 4px solid #FFFFFF; border-top: 4px solid #FFFFFF; border-bottom: 4px solid #FFFFFF; }
+        .bracket-box.left-bracket { border-left: 4px solid currentColor; border-top: 4px solid currentColor; border-bottom: 4px solid currentColor; }
+        .bracket-box.right-bracket { border-right: 4px solid currentColor; border-top: 4px solid currentColor; border-bottom: 4px solid currentColor; }
         .cell.is-start-bracket, .cell.is-only-start-bracket, .cell.is-end-bracket, .cell.is-only-end-bracket { justify-content: center; gap: 4px; }
         .cell .bar-char { font-size: 2.4rem; font-weight: 700; margin: 0; line-height: 1; }
         .cell.is-bar { font-size: 2.4rem !important; font-weight: 700 !important; }
@@ -39,11 +233,31 @@
         .cell.is-power .power-num { position: absolute; top: 2px; left: 3px; font-size: 1.2rem; font-weight: 900; line-height: 1; }
         .cell.is-left-arrow-container { display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1; }
         .cell.is-left-arrow-container .arrow-subnum { font-size: 1.3rem; font-weight: 900; margin-top: -3px; }
+
+        /* --- DESPLEGABLE DE SELECCIÓN DE COLOR --- */
+        .color-select { 
+            width: 100%; 
+            background-color: #1f2937; /* 🎨 CAMBIAR: Fondo del menú desplegable */
+            color: #ffffff; 
+            border: 1px solid #374151; 
+            padding: 12px; 
+            border-radius: 6px; 
+            font-size: 1.1rem; 
+            font-weight: bold; 
+            cursor: pointer; 
+            outline: none; 
+        }
+        .color-select option { 
+            background-color: #111827; 
+            color: #ffffff; 
+        }
     </style>
 </head>
 <body>
 
-    <!-- PALETA DE HERRAMIENTAS LATERAL -->
+    <!-- ==========================================================================
+         2. ESTRUCTURA HTML (BARRA LATERAL Y HERRAMIENTAS)
+         ========================================================================== -->
     <div class="sidebar">
         <div>
             <h3>Acordes</h3>
@@ -100,6 +314,15 @@
             </div>
         </div>
 
+        <!-- MENU DESPLEGABLE DE COLOR DE TEXTO -->
+        <div>
+            <h3>Color de Texto (Fila Activa)</h3>
+            <select id="textColorSelect" class="color-select" onchange="changeActiveRowTextColor(this.value)">
+                <option value="#FFFFFF">⚪ Blanco</option>
+                <option value="#28831A">🟢 Verde</option> <!-- 🎨 CAMBIAR: Código HEX si usas otro verde -->
+            </select>
+        </div>
+
         <div>
             <h3>Repeticiones</h3>
             <div class="palette-group">
@@ -126,6 +349,9 @@
         </div>
     </div>
 
+    <!-- ==========================================================================
+         3. LÓGICA Y BACKEND JAVASCRIPT
+         ========================================================================== -->
     <script>
         let selectedCell = null;
         const defaultLabels = ["1ra", "2da", "3era", "4ta", "5ta", "6ta", "7tma", "8ctva", "9na", "10cima"];
@@ -134,11 +360,13 @@
 
         const rowsContainer = document.getElementById('rowsContainer');
         const sheetTitle = document.getElementById('sheetTitle');
+        const colorSelect = document.getElementById('textColorSelect');
         
-        // Crear filas y celdas
+        // --- CONSTRUCTOR DE LA TABLA DE DIBUJO ---
         for (let i = 0; i < 10; i++) {
             const row = document.createElement('div');
             row.className = 'sheet-row';
+            row.dataset.rowIndex = i;
 
             const label = document.createElement('div');
             label.className = 'row-label';
@@ -146,6 +374,11 @@
             label.dataset.rowIndex = i;
             label.textContent = defaultLabels[i] || "";
             label.addEventListener('input', saveState);
+            label.addEventListener('click', () => {
+                const firstCell = row.querySelector('.cell');
+                if (firstCell) selectCell(firstCell);
+            });
+
             row.appendChild(label);
 
             const cellsContainer = document.createElement('div');
@@ -166,12 +399,37 @@
 
         sheetTitle.addEventListener('input', saveState);
 
+        // --- SELECCIÓN Y DETECCIÓN DE COLOR EN JS ---
         function selectCell(cell) {
             if (selectedCell) selectedCell.classList.remove('selected');
             selectedCell = cell;
             selectedCell.classList.add('selected');
+
+            // Sincronizar el selector desplegable con el color de la fila activa
+            const row = selectedCell.closest('.sheet-row');
+            if (row) {
+                const computedColor = window.getComputedStyle(row).color;
+                /* 🎨 DETECCIÓN DE VERDE: Se evalúa '40, 131, 26' (valor RGB de #28831A) */
+                if (computedColor.includes('40, 131, 26') || row.style.color === '#28831A') {
+                    colorSelect.value = '#28831A';
+                } else {
+                    colorSelect.value = '#FFFFFF';
+                }
+            }
         }
 
+        // --- APLICAR COLOR A LA FILA ACTIVA ---
+        function changeActiveRowTextColor(colorHex) {
+            if (!selectedCell) return;
+            const rowIndex = selectedCell.dataset.row;
+            const targetRow = document.querySelector(`.sheet-row[data-row-index="${rowIndex}"]`);
+            if (targetRow) {
+                targetRow.style.color = colorHex;
+                saveState();
+            }
+        }
+
+        // --- NAVEGACIÓN Y TECLADO ---
         document.addEventListener('keydown', (e) => {
             if (document.activeElement && document.activeElement.isContentEditable) return;
             if (!selectedCell) return;
@@ -220,6 +478,7 @@
             }
         });
 
+        // --- INSERCIÓN DE SÍMBOLOS ESPECIALES ---
         function insertSpecial(type) {
             if (!selectedCell) return;
             selectedCell.className = 'cell selected';
@@ -233,6 +492,7 @@
             moveToNext();
         }
 
+        // --- INSERCIÓN DE ACORDES Y FECHAS ---
         function insertSymbol(symbol, isPower = false) {
             if (!selectedCell) return;
 
@@ -258,13 +518,13 @@
                 selectedCell.innerHTML = `<span class="power-num">${symbol}</span>`;
                 selectedCell.classList.add('is-power');
             } else if (symbol === '%') {
-                selectedCell.innerHTML = `<svg class="repeat-svg" width="34" height="34" viewBox="0 0 24 24"><circle cx="6.5" cy="7.5" r="3.5" fill="#FFFFFF"/><circle cx="17.5" cy="16.5" r="3.5" fill="#FFFFFF"/><line x1="4" y1="21" x2="20" y2="3" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round"/></svg>`;
+                selectedCell.innerHTML = `<svg class="repeat-svg" width="34" height="34" viewBox="0 0 24 24"><circle cx="6.5" cy="7.5" r="3.5"/><circle cx="17.5" cy="16.5" r="3.5"/><line x1="4" y1="21" x2="20" y2="3" stroke-width="3.5" stroke-linecap="round"/></svg>`;
                 selectedCell.classList.add('is-repeat');
             } else if (symbol === '↑') {
-                selectedCell.innerHTML = `<svg class="arrow-svg" width="32" height="32" viewBox="0 0 24 24"><line x1="12" y1="22" x2="12" y2="4" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round"/><polyline points="5,11 12,4 19,11" fill="none" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+                selectedCell.innerHTML = `<svg class="arrow-svg" width="32" height="32" viewBox="0 0 24 24"><line x1="12" y1="22" x2="12" y2="4" stroke-width="4" stroke-linecap="round"/><polyline points="5,11 12,4 19,11" fill="none" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
                 selectedCell.classList.add('is-arrow');
             } else if (symbol === '←') {
-                selectedCell.innerHTML = `<svg class="arrow-svg" width="28" height="24" viewBox="0 0 24 24"><line x1="20" y1="12" x2="4" y2="12" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round"/><polyline points="11,5 4,12 11,19" fill="none" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="arrow-subnum"></span>`;
+                selectedCell.innerHTML = `<svg class="arrow-svg" width="28" height="24" viewBox="0 0 24 24"><line x1="20" y1="12" x2="4" y2="12" stroke-width="4" stroke-linecap="round"/><polyline points="11,5 4,12 11,19" fill="none" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="arrow-subnum"></span>`;
                 selectedCell.classList.add('is-left-arrow-container');
             } else {
                 selectedCell.textContent = symbol;
@@ -283,7 +543,6 @@
             saveState();
         }
 
-        // --- BORRAR SOLO LO DE LA DERECHA (LIENZO) ---
         function clearAllCells() {
             if (confirm("¿Estás seguro de que deseas borrar todas las notas del lienzo?")) {
                 const allCells = document.querySelectorAll('.cell');
@@ -291,6 +550,7 @@
                     cell.className = 'cell';
                     cell.innerHTML = '';
                 });
+                document.querySelectorAll('.sheet-row').forEach(r => r.style.color = '');
                 if (selectedCell) selectCell(selectedCell);
                 saveState();
             }
@@ -305,16 +565,23 @@
             }
         }
 
-        // --- LOCALSTORAGE (GUARDAR / CARGAR) ---
+        // --- SISTEMA DE ALMACENAMIENTO (LOCALSTORAGE) ---
         function saveState() {
             const data = {
                 title: sheetTitle.textContent,
                 labels: [],
+                rowColors: {},
                 cells: []
             };
 
             document.querySelectorAll('.row-label').forEach(label => {
                 data.labels.push(label.textContent);
+            });
+
+            document.querySelectorAll('.sheet-row').forEach(row => {
+                if (row.style.color) {
+                    data.rowColors[row.dataset.rowIndex] = row.style.color;
+                }
             });
 
             document.querySelectorAll('.cell').forEach(cell => {
@@ -337,13 +604,19 @@
 
             try {
                 const data = JSON.parse(saved);
-                
                 if (data.title) sheetTitle.textContent = data.title;
 
                 if (data.labels) {
                     const labelDivs = document.querySelectorAll('.row-label');
                     data.labels.forEach((text, i) => {
                         if (labelDivs[i]) labelDivs[i].textContent = text;
+                    });
+                }
+
+                if (data.rowColors) {
+                    Object.keys(data.rowColors).forEach(rowIndex => {
+                        const targetRow = document.querySelector(`.sheet-row[data-row-index="${rowIndex}"]`);
+                        if (targetRow) targetRow.style.color = data.rowColors[rowIndex];
                     });
                 }
 
@@ -361,10 +634,14 @@
             }
         }
 
-        // Cargar datos al iniciar la página
+        // Inicializar el documento
         loadState();
+        
+        // Seleccionar la celda [0,0] al abrir por primera vez
+        const firstCell = document.querySelector('.cell[data-row="0"][data-col="0"]');
+        if (firstCell) selectCell(firstCell);
 
-        // --- EXPORTAR A PDF ---
+        // --- EXPORTACIÓN A PDF ---
         function exportToPDF() {
             if (selectedCell) selectedCell.classList.remove('selected');
             const originalPaper = document.getElementById('sheetPaper');
