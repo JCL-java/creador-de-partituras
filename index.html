@@ -4,12 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Editor de Anotaciones Musicales</title>
-    <!-- Librería para exportación a PDF -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <!-- Librerías para captura de pantalla exacta y generación de PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
-    <!-- ==========================================================================
-         1. ESTILOS CSS (AQUÍ CAMBIAS COLORES Y TAMAÑOS)
-         ========================================================================== -->
     <style>
         /* --- ESTILOS GENERALES Y FONDO --- */
         * { 
@@ -19,8 +17,8 @@
             font-family: 'Segoe UI', Arial, sans-serif; 
         }
         html, body { 
-            background-color: #0b0f19; /* 🎨 CAMBIAR: Fondo general de la aplicación */
-            color: #ffffff;            /* 🎨 CAMBIAR: Color de texto general */
+            background-color: #0b0f19; 
+            color: #ffffff; 
             display: flex; 
             height: 100vh; 
             width: 100vw; 
@@ -31,8 +29,8 @@
         .sidebar { 
             width: 360px; 
             min-width: 360px; 
-            background-color: #111827; /* 🎨 CAMBIAR: Fondo del menú lateral */
-            border-right: 1px solid #1f2937; /* 🎨 CAMBIAR: Borde del menú lateral */
+            background-color: #111827; 
+            border-right: 1px solid #1f2937; 
             padding: 22px; 
             display: flex; 
             flex-direction: column; 
@@ -42,7 +40,7 @@
         }
         .sidebar h3 { 
             font-size: 0.9rem; 
-            color: #6b7280; /* 🎨 CAMBIAR: Color de los subtítulos del menú */
+            color: #6b7280; 
             text-transform: uppercase; 
             letter-spacing: 1px; 
             margin-bottom: 12px; 
@@ -55,9 +53,9 @@
 
         /* --- BOTONES DE LA PALETA --- */
         .symbol-btn { 
-            background-color: #1f2937; /* 🎨 CAMBIAR: Fondo de botones de acordes */
-            color: #f3f4f6;            /* 🎨 CAMBIAR: Color de texto de acordes */
-            border: 1px solid #374151;  /* 🎨 CAMBIAR: Borde de botones */
+            background-color: #1f2937; 
+            color: #f3f4f6; 
+            border: 1px solid #374151; 
             padding: 14px 6px; 
             min-height: 52px; 
             border-radius: 6px; 
@@ -71,14 +69,29 @@
             justify-content: center; 
         }
         .symbol-btn:hover { 
-            background-color: #2563eb; /* 🎨 CAMBIAR: Color al pasar el ratón (Hover) */
+            background-color: #2563eb; 
             border-color: #3b82f6; 
         }
 
-        /* --- BOTÓN DESCARGAR PDF --- */
+        /* --- BOTONES DE ACCIÓN --- */
+        .danger-btn {
+            background-color: #991b1b; 
+            color: white;
+            border: 1px solid #b91c1c; 
+            padding: 14px; 
+            border-radius: 8px; 
+            font-size: 1rem; 
+            font-weight: bold; 
+            cursor: pointer; 
+            width: 100%;
+        }
+        .danger-btn:hover {
+            background-color: #7f1d1d;
+        }
+
         .export-btn { 
             margin-top: auto; 
-            background-color: #059669; /* 🎨 CAMBIAR: Fondo botón PDF */
+            background-color: #059669; 
             color: white; 
             border: none; 
             padding: 18px; 
@@ -92,14 +105,14 @@
             gap: 8px; 
         }
         .export-btn:hover { 
-            background-color: #047857; /* 🎨 CAMBIAR: Hover botón PDF */
+            background-color: #047857; 
         }
 
-        /* --- CONTENEDOR PRINCIPAL Y LIENZO (PAPEL NEGRO) --- */
+        /* --- CONTENEDOR PRINCIPAL Y LIENZO --- */
         .main-content { 
             flex: 1; 
             padding: 20px; 
-            background-color: #0b0f19; /* 🎨 CAMBIAR: Fondo detrás de la hoja */
+            background-color: #0b0f19; 
             overflow: auto; 
             display: flex; 
             justify-content: center; 
@@ -108,14 +121,14 @@
             box-sizing: border-box; 
         }
         .paper { 
-            background-color: #000000 !important; /* 🎨 CAMBIAR: Fondo del lienzo/hoja */
-            color: #ffffff;            /* 🎨 CAMBIAR: Color predeterminado de texto de la hoja */
+            background-color: #000000 !important; 
+            color: #ffffff; 
             width: 100%; 
             max-width: 1550px; 
             min-width: 1200px; 
             height: 100%; 
-            padding: 25px 45px 35px 45px; 
-            border: 2px solid #1e293b; /* 🎨 CAMBIAR: Borde exterior de la hoja */
+            padding: 20px 45px 25px 45px; 
+            border: 2px solid #1e293b; 
             border-radius: 4px; 
             display: flex; 
             flex-direction: column; 
@@ -124,34 +137,33 @@
             overflow: hidden; 
         }
 
-        /* ==========================================================================
-           📌 📐 TÍTULO DE LA HOJA (MODIFICA EL TAMAÑO AQUÍ)
-           ========================================================================== */
         .sheet-title { 
             text-align: center; 
-            font-size: 2.0rem;       /* 📐 CAMBIAR AQUÍ EL TAMAÑO DEL TÍTULO (ej. 2.5rem, 30px) */
-            font-weight: 900;        /* 📐 Grosor de la letra (100 a 900) */
+            font-size: 2.0rem; 
+            font-weight: 900; 
             outline: none; 
-            margin-bottom: 12px; 
+            margin-bottom: 8px; 
             text-transform: uppercase; 
-            color: #FFFFFF;          /* 🎨 CAMBIAR: Color del título */
-            letter-spacing: 1px;     /* Espaciado entre letras */
+            color: #FFFFFF; 
+            letter-spacing: 1px; 
             line-height: 1; 
         }
 
         /* --- FILAS Y CELDAS --- */
         .rows-container { 
-            display: grid; 
-            grid-template-rows: repeat(10, 1fr); 
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start; 
+            gap: 20px; 
             flex: 1; 
             overflow: hidden; 
-            margin-top: 10px; 
+            margin-top: 5px; 
         }
         .sheet-row { 
             display: flex; 
             align-items: center; 
             width: 100%; 
-            height: 100%; 
+            height: 36px; 
             gap: 8px; 
             position: relative; 
         }
@@ -160,7 +172,7 @@
             min-width: 130px; 
             max-width: 130px; 
             font-weight: 700; 
-            font-size: 1.5rem; /* 📐 Tamaños de las etiquetas (1ra, 2da...) */
+            font-size: 1.4rem; 
             outline: none; 
             border-bottom: none; 
             padding-right: 4px; 
@@ -170,7 +182,7 @@
             transition: background-color 0.2s; 
         }
         .row-label:focus { 
-            background-color: #1f2937; /* 🎨 Fondo al editar la etiqueta de fila */
+            background-color: #1f2937; 
             outline: none; 
         }
         .row-cells { 
@@ -182,13 +194,14 @@
             gap: 4px; 
             margin-left: 10px; 
         }
+
         .cell { 
             height: 100%; 
             display: flex; 
             align-items: center; 
             justify-content: center; 
-            font-weight: 900; 
-            font-size: 2rem; 
+            font-weight: 700; 
+            font-size: 1.6rem;
             letter-spacing: -0.5px; 
             cursor: pointer; 
             user-select: none; 
@@ -199,45 +212,73 @@
             border-bottom: none; 
         }
         .cell.is-long-chord { 
-            font-size: 1.85rem !important; 
+            font-size: 1.6rem !important; 
             letter-spacing: -0.0px !important; 
         }
         .cell:hover { 
-            background-color: #0047A3; /* 🎨 CAMBIAR: Color azul al pasar el ratón por las celdas */
+            background-color: #0047A3; 
         }
 
-        /* --- INDICADOR DE CURSOR EN LA CELDA SELECCIONADA --- */
+        /* --- SEÑAL PARPADEANTE ABAJO DE LA CELDA --- */
         .cell.selected::after { 
             content: ''; 
             position: absolute; 
-            bottom: 15px; 
+            bottom: 1px; 
             left: 0; 
             width: 100%; 
             height: 3px; 
-            background-color: #FF0000; /* 🎨 CAMBIAR: Color de la barra parpadeante de selección */
+            background-color: #FF0000; 
             animation: blink-cursor 1s step-end infinite; 
         }
         @keyframes blink-cursor { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
         
-        /* HERENCIA DE COLOR DE SVG EN CELDAS */
         .cell svg circle, .cell svg line, .cell svg polyline { fill: currentColor; stroke: currentColor; }
         .cell svg polyline { fill: none; }
 
-        .bracket-box { display: inline-block; width: 10px; height: 55px; flex-shrink: 0; position: relative; }
-        .bracket-box.left-bracket { border-left: 4px solid currentColor; border-top: 4px solid currentColor; border-bottom: 4px solid currentColor; }
-        .bracket-box.right-bracket { border-right: 4px solid currentColor; border-top: 4px solid currentColor; border-bottom: 4px solid currentColor; }
+        /* --- ELEMENTOS ROJOS FIJOS --- */
+        .cell.is-arrow,
+        .cell.is-left-arrow-container,
+        .cell.is-power {
+            color: #FF0000 !important;
+        }
+
+        .cell.is-arrow svg *,
+        .cell.is-left-arrow-container svg * {
+            fill: #FF0000 !important;
+            stroke: #FF0000 !important;
+        }
+
+        .cell.is-left-arrow-container .arrow-subnum,
+        .cell.is-power .power-num {
+            color: #FF0000 !important;
+        }
+
+        /* --- CORCHETES SVG VECTORIALES --- */
+        .bracket-box { 
+            display: inline-flex; 
+            align-items: center; 
+            justify-content: center; 
+            width: 16px; 
+            height: 100%; 
+            flex-shrink: 0; 
+        }
+        .bracket-svg {
+            width: 100%;
+            height: 100%; 
+        }
+
         .cell.is-start-bracket, .cell.is-only-start-bracket, .cell.is-end-bracket, .cell.is-only-end-bracket { justify-content: center; gap: 4px; }
-        .cell .bar-char { font-size: 2.4rem; font-weight: 700; margin: 0; line-height: 1; }
-        .cell.is-bar { font-size: 2.4rem !important; font-weight: 700 !important; }
+        .cell .bar-char { font-size: 2.0rem; font-weight: 700; margin: 0; line-height: 1; }
+        .cell.is-bar { font-size: 2.0rem !important; font-weight: 700 !important; }
         .cell.is-power { position: relative; }
-        .cell.is-power .power-num { position: absolute; top: 2px; left: 3px; font-size: 1.2rem; font-weight: 900; line-height: 1; }
+        .cell.is-power .power-num { position: absolute; top: -2px; left: 3px; font-size: 1.0rem; font-weight: 900; line-height: 1; }
         .cell.is-left-arrow-container { display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1; }
-        .cell.is-left-arrow-container .arrow-subnum { font-size: 1.3rem; font-weight: 900; margin-top: -3px; }
+        .cell.is-left-arrow-container .arrow-subnum { font-size: 1.1rem; font-weight: 900; margin-top: -3px; }
 
         /* --- DESPLEGABLE DE SELECCIÓN DE COLOR --- */
         .color-select { 
             width: 100%; 
-            background-color: #1f2937; /* 🎨 CAMBIAR: Fondo del menú desplegable */
+            background-color: #1f2937; 
             color: #ffffff; 
             border: 1px solid #374151; 
             padding: 12px; 
@@ -255,35 +296,50 @@
 </head>
 <body>
 
-    <!-- ==========================================================================
-         2. ESTRUCTURA HTML (BARRA LATERAL Y HERRAMIENTAS)
-         ========================================================================== -->
     <div class="sidebar">
+        <!-- SECCIÓN 1: ACORDES -->
         <div>
             <h3>Acordes</h3>
             <div class="palette-group">
+                <!-- Fila C -->
                 <button class="symbol-btn" onclick="insertSymbol('C')">C</button>
                 <button class="symbol-btn" onclick="insertSymbol('Cm')">Cm</button>
+                <button class="symbol-btn" onclick="insertSymbol('C#')">C#</button>
                 <button class="symbol-btn" onclick="insertSymbol('C#m')">C#m</button>
+                
+                <!-- Fila D -->
                 <button class="symbol-btn" onclick="insertSymbol('D')">D</button>
                 <button class="symbol-btn" onclick="insertSymbol('Dm')">Dm</button>
+                <button class="symbol-btn" onclick="insertSymbol('D#')">D#</button>
                 <button class="symbol-btn" onclick="insertSymbol('D#m')">D#m</button>
-                <button class="symbol-btn" onclick="insertSymbol('E')">E</button>
-                <button class="symbol-btn" onclick="insertSymbol('Em')">Em</button>
+                
+                <!-- Fila F -->
                 <button class="symbol-btn" onclick="insertSymbol('F')">F</button>
                 <button class="symbol-btn" onclick="insertSymbol('Fm')">Fm</button>
+                <button class="symbol-btn" onclick="insertSymbol('F#')">F#</button>
                 <button class="symbol-btn" onclick="insertSymbol('F#m')">F#m</button>
+                
+                <!-- Fila G -->
                 <button class="symbol-btn" onclick="insertSymbol('G')">G</button>
                 <button class="symbol-btn" onclick="insertSymbol('Gm')">Gm</button>
+                <button class="symbol-btn" onclick="insertSymbol('G#')">G#</button>
                 <button class="symbol-btn" onclick="insertSymbol('G#m')">G#m</button>
+                
+                <!-- Fila A -->
                 <button class="symbol-btn" onclick="insertSymbol('A')">A</button>
                 <button class="symbol-btn" onclick="insertSymbol('Am')">Am</button>
+                <button class="symbol-btn" onclick="insertSymbol('A#')">A#</button>
                 <button class="symbol-btn" onclick="insertSymbol('A#m')">A#m</button>
+                
+                <!-- Fila E y B -->
+                <button class="symbol-btn" onclick="insertSymbol('E')">E</button>
+                <button class="symbol-btn" onclick="insertSymbol('Em')">Em</button>
                 <button class="symbol-btn" onclick="insertSymbol('B')">B</button>
                 <button class="symbol-btn" onclick="insertSymbol('Bm')">Bm</button>
             </div>
         </div>
 
+        <!-- SECCIÓN 2: SÍMBOLOS ESPECIALES -->
         <div>
             <h3>Símbolos Especiales</h3>
             <div class="palette-group">
@@ -294,48 +350,47 @@
                 <button class="symbol-btn" onclick="insertSymbol('|')">|</button>
                 <button class="symbol-btn" onclick="insertSymbol('%')">
                     <svg width="20" height="20" viewBox="0 0 24 24">
-                        <circle cx="6.5" cy="7.5" r="3.5" fill="#FFFFFF"/>
-                        <circle cx="17.5" cy="16.5" r="3.5" fill="#FFFFFF"/>
-                        <line x1="4" y1="21" x2="20" y2="3" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round"/>
+                        <circle cx="6.5" cy="7.5" r="3.5" fill="currentColor"/>
+                        <circle cx="17.5" cy="16.5" r="3.5" fill="currentColor"/>
+                        <line x1="4" y1="21" x2="20" y2="3" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>
                     </svg>
                 </button>
                 <button class="symbol-btn" onclick="insertSymbol('↑')">
                     <svg width="20" height="20" viewBox="0 0 24 24">
-                        <line x1="12" y1="22" x2="12" y2="4" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round"/>
-                        <polyline points="5,11 12,4 19,11" fill="none" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+                        <line x1="12" y1="22" x2="12" y2="4" stroke="#FF0000" stroke-width="4" stroke-linecap="round"/>
+                        <polyline points="5,11 12,4 19,11" fill="none" stroke="#FF0000" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>
                 </button>
                 <button class="symbol-btn" onclick="insertSymbol('←')">
                     <svg width="22" height="22" viewBox="0 0 24 24">
-                        <line x1="20" y1="12" x2="4" y2="12" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round"/>
-                        <polyline points="11,5 4,12 11,19" fill="none" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+                        <line x1="20" y1="12" x2="4" y2="12" stroke="#FF0000" stroke-width="4" stroke-linecap="round"/>
+                        <polyline points="11,5 4,12 11,19" fill="none" stroke="#FF0000" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>
                 </button>
+                <!-- Repeticiones -->
+                <button class="symbol-btn" style="color: #FF0000;" onclick="insertSymbol('x2', true)">x2</button>
+                <button class="symbol-btn" style="color: #FF0000;" onclick="insertSymbol('x3', true)">x3</button>
+                <button class="symbol-btn" style="color: #FF0000;" onclick="insertSymbol('x4', true)">x4</button>
+                <button class="symbol-btn" style="color: #FF0000;" onclick="insertSymbol('x5', true)">x5</button>
+                <button class="symbol-btn" style="color: #FF0000;" onclick="insertSymbol('x6', true)">x6</button>
+                <button class="symbol-btn" style="color: #FF0000;" onclick="insertSymbol('x7', true)">x7</button>
+                <button class="symbol-btn" style="color: #FF0000;" onclick="insertSymbol('x8', true)">x8</button>
+                <button class="symbol-btn" style="color: #FF0000;" onclick="insertSymbol('x9', true)">x9</button>
             </div>
         </div>
 
-        <!-- MENU DESPLEGABLE DE COLOR DE TEXTO -->
+        <!-- SECCIÓN 3: COLOR DE TEXTO -->
         <div>
             <h3>Color de Texto (Fila Activa)</h3>
             <select id="textColorSelect" class="color-select" onchange="changeActiveRowTextColor(this.value)">
                 <option value="#FFFFFF">⚪ Blanco</option>
-                <option value="#28831A">🟢 Verde</option> <!-- 🎨 CAMBIAR: Código HEX si usas otro verde -->
+                <option value="#28831A">🟢 Verde</option>
             </select>
         </div>
 
+        <!-- LIMPIAR LIENZO -->
         <div>
-            <h3>Repeticiones</h3>
-            <div class="palette-group">
-                <button class="symbol-btn" onclick="insertSymbol('x2', true)">x2</button>
-                <button class="symbol-btn" onclick="insertSymbol('x3', true)">x3</button>
-                <button class="symbol-btn" onclick="insertSymbol('x4', true)">x4</button>
-                <button class="symbol-btn" onclick="insertSymbol('x5', true)">x5</button>
-                <button class="symbol-btn" onclick="insertSymbol('x6', true)">x6</button>
-                <button class="symbol-btn" onclick="insertSymbol('x7', true)">x7</button>
-                <button class="symbol-btn" onclick="insertSymbol('x8', true)">x8</button>
-                <button class="symbol-btn" onclick="insertSymbol('x9', true)">x9</button>
-                <button class="symbol-btn" style="background-color: #991b1b; border-color: #b91c1c; grid-column: span 4; margin-top: 5px;" onclick="clearAllCells()">Limpiar Lienzo</button>
-            </div>
+            <button class="danger-btn" onclick="clearAllCells()">Limpiar Lienzo</button>
         </div>
 
         <button class="export-btn" onclick="exportToPDF()">📄 Descargar PDF</button>
@@ -349,21 +404,20 @@
         </div>
     </div>
 
-    <!-- ==========================================================================
-         3. LÓGICA Y BACKEND JAVASCRIPT
-         ========================================================================== -->
     <script>
         let selectedCell = null;
-        const defaultLabels = ["1ra", "2da", "3era", "4ta", "5ta", "6ta", "7tma", "8ctva", "9na", "10cima"];
+        
+        // 1️⃣ ETIQUETAS COMPLETAMENTE VACÍAS PARA LAS 14 FILAS
+        const defaultLabels = ["", "", "", "", "", "", "", "", "", "", "", "", "", ""];
         const maxCols = 31;
-        const maxRows = 9;
+        const maxRows = 13; // (14 filas = índices del 0 al 13)
 
         const rowsContainer = document.getElementById('rowsContainer');
         const sheetTitle = document.getElementById('sheetTitle');
         const colorSelect = document.getElementById('textColorSelect');
         
-        // --- CONSTRUCTOR DE LA TABLA DE DIBUJO ---
-        for (let i = 0; i < 10; i++) {
+        // 2️⃣ GENERADOR DE LAS 14 FILAS
+        for (let i = 0; i < 14; i++) { 
             const row = document.createElement('div');
             row.className = 'sheet-row';
             row.dataset.rowIndex = i;
@@ -399,17 +453,14 @@
 
         sheetTitle.addEventListener('input', saveState);
 
-        // --- SELECCIÓN Y DETECCIÓN DE COLOR EN JS ---
         function selectCell(cell) {
             if (selectedCell) selectedCell.classList.remove('selected');
             selectedCell = cell;
             selectedCell.classList.add('selected');
 
-            // Sincronizar el selector desplegable con el color de la fila activa
             const row = selectedCell.closest('.sheet-row');
             if (row) {
                 const computedColor = window.getComputedStyle(row).color;
-                /* 🎨 DETECCIÓN DE VERDE: Se evalúa '40, 131, 26' (valor RGB de #28831A) */
                 if (computedColor.includes('40, 131, 26') || row.style.color === '#28831A') {
                     colorSelect.value = '#28831A';
                 } else {
@@ -418,7 +469,6 @@
             }
         }
 
-        // --- APLICAR COLOR A LA FILA ACTIVA ---
         function changeActiveRowTextColor(colorHex) {
             if (!selectedCell) return;
             const rowIndex = selectedCell.dataset.row;
@@ -429,7 +479,6 @@
             }
         }
 
-        // --- NAVEGACIÓN Y TECLADO ---
         document.addEventListener('keydown', (e) => {
             if (document.activeElement && document.activeElement.isContentEditable) return;
             if (!selectedCell) return;
@@ -478,21 +527,46 @@
             }
         });
 
-        // --- INSERCIÓN DE SÍMBOLOS ESPECIALES ---
+        /* --- CORCHETES SVG VECTORIALES --- */
         function insertSpecial(type) {
             if (!selectedCell) return;
             selectedCell.className = 'cell selected';
             
-            if (type === 'start-bracket') { selectedCell.innerHTML = `<span class="bracket-box left-bracket"></span><span class="bar-char">|</span>`; selectedCell.classList.add('is-start-bracket'); }
-            else if (type === 'end-bracket') { selectedCell.innerHTML = `<span class="bar-char">|</span><span class="bracket-box right-bracket"></span>`; selectedCell.classList.add('is-end-bracket'); }
-            else if (type === 'only-start-bracket') { selectedCell.innerHTML = `<span class="bracket-box left-bracket"></span>`; selectedCell.classList.add('is-only-start-bracket'); }
-            else if (type === 'only-end-bracket') { selectedCell.innerHTML = `<span class="bracket-box right-bracket"></span>`; selectedCell.classList.add('is-only-end-bracket'); }
+            const leftBracketSVG = `
+                <span class="bracket-box">
+                    <svg class="bracket-svg" viewBox="0 0 12 36" preserveAspectRatio="none">
+                        <path d="M 10,1 L 2,1 L 2,35 L 10,35" stroke="currentColor" stroke-width="3.5" fill="none" stroke-linecap="square"/>
+                    </svg>
+                </span>`;
+
+            const rightBracketSVG = `
+                <span class="bracket-box">
+                    <svg class="bracket-svg" viewBox="0 0 12 36" preserveAspectRatio="none">
+                        <path d="M 2,1 L 10,1 L 10,35 L 2,35" stroke="currentColor" stroke-width="3.5" fill="none" stroke-linecap="square"/>
+                    </svg>
+                </span>`;
+
+            if (type === 'start-bracket') { 
+                selectedCell.innerHTML = `${leftBracketSVG}<span class="bar-char">|</span>`; 
+                selectedCell.classList.add('is-start-bracket'); 
+            }
+            else if (type === 'end-bracket') { 
+                selectedCell.innerHTML = `<span class="bar-char">|</span>${rightBracketSVG}`; 
+                selectedCell.classList.add('is-end-bracket'); 
+            }
+            else if (type === 'only-start-bracket') { 
+                selectedCell.innerHTML = leftBracketSVG; 
+                selectedCell.classList.add('is-only-start-bracket'); 
+            }
+            else if (type === 'only-end-bracket') { 
+                selectedCell.innerHTML = rightBracketSVG; 
+                selectedCell.classList.add('is-only-end-bracket'); 
+            }
             
             saveState();
             moveToNext();
         }
 
-        // --- INSERCIÓN DE ACORDES Y FECHAS ---
         function insertSymbol(symbol, isPower = false) {
             if (!selectedCell) return;
 
@@ -518,7 +592,7 @@
                 selectedCell.innerHTML = `<span class="power-num">${symbol}</span>`;
                 selectedCell.classList.add('is-power');
             } else if (symbol === '%') {
-                selectedCell.innerHTML = `<svg class="repeat-svg" width="34" height="34" viewBox="0 0 24 24"><circle cx="6.5" cy="7.5" r="3.5"/><circle cx="17.5" cy="16.5" r="3.5"/><line x1="4" y1="21" x2="20" y2="3" stroke-width="3.5" stroke-linecap="round"/></svg>`;
+                selectedCell.innerHTML = `<svg class="repeat-svg" width="30" height="30" viewBox="0 0 24 24"><circle cx="6.5" cy="7.5" r="3.5"/><circle cx="17.5" cy="16.5" r="3.5"/><line x1="4" y1="21" x2="20" y2="3" stroke-width="4" stroke-linecap="round"/></svg>`;
                 selectedCell.classList.add('is-repeat');
             } else if (symbol === '↑') {
                 selectedCell.innerHTML = `<svg class="arrow-svg" width="32" height="32" viewBox="0 0 24 24"><line x1="12" y1="22" x2="12" y2="4" stroke-width="4" stroke-linecap="round"/><polyline points="5,11 12,4 19,11" fill="none" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
@@ -543,15 +617,27 @@
             saveState();
         }
 
+        /* 🧹 FUNCIÓN DE BORRADO INTEGRAL (CONSERVA EL TÍTULO) */
         function clearAllCells() {
-            if (confirm("¿Estás seguro de que deseas borrar todas las notas del lienzo?")) {
+            if (confirm("¿Estás seguro de que deseas borrar todas las notas y nombres de filas?")) {
+                // Borrar celdas
                 const allCells = document.querySelectorAll('.cell');
                 allCells.forEach(cell => {
                     cell.className = 'cell';
                     cell.innerHTML = '';
                 });
+
+                // Borrar etiquetas laterales
+                document.querySelectorAll('.row-label').forEach(label => {
+                    label.textContent = '';
+                });
+
+                // Resetear colores de filas
                 document.querySelectorAll('.sheet-row').forEach(r => r.style.color = '');
+
+                // Re-seleccionar primera celda
                 if (selectedCell) selectCell(selectedCell);
+
                 saveState();
             }
         }
@@ -565,7 +651,6 @@
             }
         }
 
-        // --- SISTEMA DE ALMACENAMIENTO (LOCALSTORAGE) ---
         function saveState() {
             const data = {
                 title: sheetTitle.textContent,
@@ -634,63 +719,37 @@
             }
         }
 
-        // Inicializar el documento
         loadState();
         
-        // Seleccionar la celda [0,0] al abrir por primera vez
         const firstCell = document.querySelector('.cell[data-row="0"][data-col="0"]');
         if (firstCell) selectCell(firstCell);
 
-        // --- EXPORTACIÓN A PDF ---
+        /* 📸 EXPORTAR A PDF FUNCIONAL Y EXACTO */
         function exportToPDF() {
             if (selectedCell) selectedCell.classList.remove('selected');
-            const originalPaper = document.getElementById('sheetPaper');
+            
+            const paperElement = document.getElementById('sheetPaper');
             const titleText = document.querySelector('.sheet-title').textContent.trim() || 'GORRION';
-            
-            const exportWidth = 1600;
-            const exportHeight = 1131;
 
-            const cloneContainer = document.createElement('div');
-            cloneContainer.style.position = 'fixed'; 
-            cloneContainer.style.left = '-9999px'; 
-            cloneContainer.style.top = '-9999px'; 
-            cloneContainer.style.width = exportWidth + 'px'; 
-            cloneContainer.style.height = exportHeight + 'px';
-            cloneContainer.style.backgroundColor = '#000000';
-            cloneContainer.style.margin = '0';
-            cloneContainer.style.padding = '0';
-            
-            const clonedPaper = originalPaper.cloneNode(true);
-            clonedPaper.style.width = exportWidth + 'px'; 
-            clonedPaper.style.height = exportHeight + 'px'; 
-            clonedPaper.style.maxWidth = 'none'; 
-            clonedPaper.style.maxHeight = 'none'; 
-            clonedPaper.style.padding = '35px 50px'; 
-            clonedPaper.style.backgroundColor = '#000000';
-            clonedPaper.style.border = 'none';
-            clonedPaper.style.margin = '0';
-            
-            cloneContainer.appendChild(clonedPaper); 
-            document.body.appendChild(cloneContainer);
-            
-            const opt = { 
-                margin: 0, 
-                filename: `${titleText.replace(/\s+/g, '_')}.pdf`, 
-                image: { type: 'jpeg', quality: 1.0 }, 
-                html2canvas: { 
-                    scale: 2, 
-                    useCORS: true, 
-                    width: exportWidth, 
-                    height: exportHeight, 
-                    backgroundColor: '#000000',
-                    scrollX: 0,
-                    scrollY: 0
-                }, 
-                jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' } 
-            };
-            
-            html2pdf().set(opt).from(clonedPaper).save().then(() => { 
-                document.body.removeChild(cloneContainer); 
+            html2canvas(paperElement, {
+                scale: 2, 
+                backgroundColor: '#000000',
+                useCORS: true,
+                logging: false
+            }).then(canvas => {
+                const imgData = canvas.toDataURL('image/png');
+                const { jsPDF } = window.jspdf;
+                
+                const pdf = new jsPDF({
+                    orientation: 'landscape',
+                    unit: 'px',
+                    format: [canvas.width / 2, canvas.height / 2]
+                });
+
+                pdf.addImage(imgData, 'PNG', 0, 0, canvas.width / 2, canvas.height / 2);
+                pdf.save(`${titleText.replace(/\s+/g, '_')}.pdf`);
+                
+                if (selectedCell) selectCell(selectedCell);
             });
         }
     </script>
