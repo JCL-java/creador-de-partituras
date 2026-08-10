@@ -140,7 +140,7 @@
             color: #ffffff; 
             width: 100%; 
             max-width: 1400px; 
-            aspect-ratio: 297 / 210; 
+            aspect-ratio: 297 / 210; /* Proporción A4 Landscape exacta */
             padding: 20px 45px 25px 45px; 
             border: 2px solid #1e293b; 
             border-radius: 4px; 
@@ -209,14 +209,13 @@
             margin-left: 10px; 
         }
 
-        /* ALINEACIÓN RIGUROSA Y ESTABILIZACIÓN DE NOTAS */
         .cell { 
             height: 100%; 
             display: flex; 
             align-items: center; 
             justify-content: center; 
             font-weight: 700; 
-            font-size: 1.6rem;
+            font-size: 1.6rem; 
             line-height: 1;
             letter-spacing: -0.5px; 
             cursor: pointer; 
@@ -228,7 +227,6 @@
             border-bottom: none; 
             text-align: center;
         }
-
         .cell.multi-selected {
             background-color: rgba(37, 99, 235, 0.45) !important;
             outline: 1px dashed #60a5fa;
@@ -246,19 +244,25 @@
         @keyframes blink-cursor { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
         
         .cell svg circle, .cell svg rect, .cell svg line, .cell svg polyline { fill: none; stroke: currentColor; }
-        .cell.is-repeat svg circle, .symbol-btn svg circle { fill: currentColor !important; }
+        .cell.is-repeat svg circle { fill: currentColor !important; }
         
         .cell.is-pause svg path { fill: #FF0000 !important; stroke: none; fill-rule: evenodd; }
         .cell.is-pause svg { display: block; margin: 0 auto; }
 
-        /* ELEMENTOS CON COLOR ROJO FIJO (#FF0000) */
-        .cell.is-arrow, .cell.is-left-arrow-container, .cell.is-power, .cell.is-pause { color: #FF0000 !important; }
-        .cell.is-arrow svg *, .cell.is-left-arrow-container svg * { fill: #FF0000 !important; stroke: #FF0000 !important; }
+        .cell.is-arrow, .cell.is-left-arrow-container, .cell.is-power, .cell.is-pause, .cell.is-slash, .cell.is-quarter-note { color: #FF0000 !important; }
+        .cell.is-arrow svg *, .cell.is-left-arrow-container svg *, .cell.is-quarter-note svg * { fill: #FF0000 !important; stroke: #FF0000 !important; }
         .cell.is-left-arrow-container .arrow-subnum, .cell.is-power .power-num { color: #FF0000 !important; }
 
-        .bracket-box { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 100%; flex-shrink: 0; }
-        .bracket-svg { width: 100%; height: 100%; }
-        .cell.is-start-bracket, .cell.is-only-start-bracket, .cell.is-end-bracket, .cell.is-only-end-bracket { justify-content: center; gap: 4px; }
+        /* CELDAS DE CORCHETES TAMAÑO COMPLETO */
+        .cell.is-only-start-bracket, .cell.is-only-end-bracket { 
+            display: flex;
+            align-items: center;
+            justify-content: center; 
+        }
+        .cell.is-only-start-bracket svg, .cell.is-only-end-bracket svg {
+            display: block;
+        }
+
         .cell .bar-char { font-size: 2.0rem; font-weight: 700; margin: 0; line-height: 1; }
         .cell.is-bar, .cell.is-slash { font-size: 2.0rem !important; font-weight: 700 !important; }
 
@@ -309,12 +313,15 @@
         <div>
             <h3>Símbolos Especiales</h3>
             <div class="palette-group">
-                <button class="symbol-btn" onclick="insertSpecial('only-start-bracket')">[</button>
-                <button class="symbol-btn" onclick="insertSpecial('only-end-bracket')">]</button>
+                <!-- FILA 1 -->
+                <button class="symbol-btn" title="Corchete Izquierdo" onclick="insertSpecial('only-start-bracket')">
+                    <svg width="12" height="28" viewBox="0 0 14 38" fill="none"><path d="M12 2H2V36H12" stroke="currentColor" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter"/></svg>
+                </button>
+                <button class="symbol-btn" title="Corchete Derecho" onclick="insertSpecial('only-end-bracket')">
+                    <svg width="12" height="28" viewBox="0 0 14 38" fill="none"><path d="M2 2H12V36H2" stroke="currentColor" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter"/></svg>
+                </button>
                 <button class="symbol-btn btn-large-symbol" onclick="insertSymbol('|')">|</button>
-                
-                <!-- BOTÓN BORRAR -->
-                <button class="symbol-btn btn-delete" title="Borrar (Ctrl+X o Backspace)" onclick="handleDeleteButton()">
+                <button class="symbol-btn btn-delete" title="Borrar (Backspace)" onclick="handleDeleteButton()">
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"></path>
                         <line x1="18" y1="9" x2="12" y2="15"></line>
@@ -322,7 +329,19 @@
                     </svg>
                 </button>
                 
-                <button class="symbol-btn btn-large-symbol" onclick="insertSymbol('/')">/</button>
+                <!-- FILA 2 (Orden dictado por el usuario) -->
+                <!-- 1. "La O" -->
+                <button class="symbol-btn" title="Pausa / Redonda" onclick="insertSymbol('pausa')">
+                    <svg width="38" height="26" viewBox="0 0 100 70"><path fill="#FF0000" fill-rule="evenodd" d="M 50 0 C 77.6 0 100 15.7 100 35 C 100 54.3 77.6 70 50 70 C 22.4 70 0 54.3 0 35 C 0 15.7 22.4 0 50 0 Z M 50 11 C 41.5 11 36 21 36 35 C 36 49 41.5 59 50 59 C 58.5 59 64 49 64 35 C 64 21 58.5 11 50 11 Z" transform="rotate(-18 50 35)"/></svg>
+                </button>
+                <!-- 2. "El Nuevo Signo" -->
+                <button class="symbol-btn" title="Nota Negra" onclick="insertSymbol('negra')">
+                    <svg width="32" height="32" viewBox="0 0 24 24">
+                        <circle cx="9" cy="17" r="5" fill="#FF0000" stroke="#FF0000" stroke-width="1"/>
+                        <line x1="13.5" y1="17" x2="13.5" y2="3" stroke="#FF0000" stroke-width="3.5" stroke-linecap="round"/>
+                    </svg>
+                </button>
+                <!-- 3. "Porcentaje lleno" -->
                 <button class="symbol-btn" onclick="insertSymbol('%')">
                     <svg width="20" height="20" viewBox="0 0 24 24">
                         <circle cx="6.5" cy="7.5" r="3.5" fill="currentColor"/>
@@ -330,26 +349,41 @@
                         <line x1="4" y1="21" x2="20" y2="3" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>
                     </svg>
                 </button>
-                <button class="symbol-btn" title="Pausa / Redonda" onclick="insertSymbol('pausa')">
-                    <svg width="38" height="26" viewBox="0 0 100 70"><path fill="#FF0000" fill-rule="evenodd" d="M 50 0 C 77.6 0 100 15.7 100 35 C 100 54.3 77.6 70 50 70 C 22.4 70 0 54.3 0 35 C 0 15.7 22.4 0 50 0 Z M 50 11 C 41.5 11 36 21 36 35 C 36 49 41.5 59 50 59 C 58.5 59 64 49 64 35 C 64 21 58.5 11 50 11 Z" transform="rotate(-18 50 35)"/></svg>
-                </button>
-                <button class="symbol-btn" onclick="insertSymbol('↑')">
-                    <svg width="20" height="20" viewBox="0 0 24 24">
-                        <line x1="12" y1="22" x2="12" y2="4" stroke="#FF0000" stroke-width="4" stroke-linecap="round"/>
-                        <polyline points="5,11 12,4 19,11" fill="none" stroke="#FF0000" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+                <!-- 4. "Porcentaje lleno con |" -->
+                <button class="symbol-btn" title="Repetición + Barra" onclick="insertRepeatBar()">
+                    <svg width="28" height="22" viewBox="0 0 28 22" style="display: block;">
+                        <!-- Símbolo % -->
+                        <circle cx="5" cy="6" r="2.8" fill="currentColor"/>
+                        <circle cx="13" cy="16" r="2.8" fill="currentColor"/>
+                        <line x1="3" y1="19" x2="15" y2="3" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+                        <!-- Barra | -->
+                        <line x1="23" y1="2" x2="23" y2="20" stroke="currentColor" stroke-width="3.2" stroke-linecap="round"/>
                     </svg>
                 </button>
-                <button class="symbol-btn" onclick="insertSymbol('←')">
+
+                <!-- FILA 3 -->
+                <button class="symbol-btn btn-large-symbol" style="color: #FF0000;" onclick="insertSymbol('/')">/</button>
+                <button class="symbol-btn" title="Flecha Izquierda" onclick="insertSymbol('←')">
                     <svg width="22" height="22" viewBox="0 0 24 24">
                         <line x1="20" y1="12" x2="4" y2="12" stroke="#FF0000" stroke-width="4" stroke-linecap="round"/>
                         <polyline points="11,5 4,12 11,19" fill="none" stroke="#FF0000" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>
                 </button>
+                <button class="symbol-btn" title="Flecha Arriba" onclick="insertSymbol('↑')">
+                    <svg width="20" height="20" viewBox="0 0 24 24">
+                        <line x1="12" y1="22" x2="12" y2="4" stroke="#FF0000" stroke-width="4" stroke-linecap="round"/>
+                        <polyline points="5,11 12,4 19,11" fill="none" stroke="#FF0000" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
                 <button class="symbol-btn" style="color: #FF0000;" onclick="insertSymbol('x2', true)">x2</button>
+                
+                <!-- FILA 4 -->
                 <button class="symbol-btn" style="color: #FF0000;" onclick="insertSymbol('x3', true)">x3</button>
                 <button class="symbol-btn" style="color: #FF0000;" onclick="insertSymbol('x4', true)">x4</button>
                 <button class="symbol-btn" style="color: #FF0000;" onclick="insertSymbol('x5', true)">x5</button>
                 <button class="symbol-btn" style="color: #FF0000;" onclick="insertSymbol('x6', true)">x6</button>
+                
+                <!-- FILA 5 -->
                 <button class="symbol-btn" style="color: #FF0000;" onclick="insertSymbol('x7', true)">x7</button>
                 <button class="symbol-btn" style="color: #FF0000;" onclick="insertSymbol('x8', true)">x8</button>
                 <button class="symbol-btn" style="color: #FF0000;" onclick="insertSymbol('x9', true)">x9</button>
@@ -511,7 +545,7 @@
             if (!selectedCell) return;
 
             if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'c') { e.preventDefault(); copySelectedRange(); clearSelectionStyles(); if (selectedCell) selectedCell.classList.add('selected'); return; }
-            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'x') { e.preventDefault(); handleDeleteButton(); return; }
+            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'x') { e.preventDefault(); cutSelectedRange(); return; }
             if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'v') { e.preventDefault(); pasteSelectedRange(); return; }
             
             if (selectedCell.classList.contains('is-left-arrow-container') && /^[0-9]$/.test(e.key)) { 
@@ -554,6 +588,16 @@
             clipboardData = matrix;
         }
 
+        function cutSelectedRange() {
+            if (!selectedCellsList.length && !selectedCell) return;
+            copySelectedRange();
+            if (selectedCellsList.length > 1) {
+                clearSelectedRange();
+            } else {
+                clearCell();
+            }
+        }
+
         function clearSelectedRange() { 
             selectedCellsList.forEach(cell => { cell.className = 'cell'; cell.innerHTML = ''; }); 
             clearSelectionStyles(); 
@@ -585,11 +629,14 @@
         function insertSpecial(type) {
             if (!selectedCell) return;
             selectedCell.className = 'cell selected';
-            const leftBracketSVG = `<span class="bracket-box"><svg class="bracket-svg" viewBox="0 0 12 36" preserveAspectRatio="none"><path d="M 10,1 L 2,1 L 2,35 L 10,35" stroke="currentColor" stroke-width="3.5" fill="none" stroke-linecap="square"/></svg></span>`, rightBracketSVG = `<span class="bracket-box"><svg class="bracket-svg" viewBox="0 0 12 36" preserveAspectRatio="none"><path d="M 2,1 L 10,1 L 10,35 L 2,35" stroke="currentColor" stroke-width="3.5" fill="none" stroke-linecap="square"/></svg></span>`;
-            if (type === 'start-bracket') { selectedCell.innerHTML = `${leftBracketSVG}<span class="bar-char">|</span>`; selectedCell.classList.add('is-start-bracket'); } 
-            else if (type === 'end-bracket') { selectedCell.innerHTML = `<span class="bar-char">|</span>${rightBracketSVG}`; selectedCell.classList.add('is-end-bracket'); } 
-            else if (type === 'only-start-bracket') { selectedCell.innerHTML = leftBracketSVG; selectedCell.classList.add('is-only-start-bracket'); } 
-            else if (type === 'only-end-bracket') { selectedCell.innerHTML = rightBracketSVG; selectedCell.classList.add('is-only-end-bracket'); }
+            if (type === 'only-start-bracket') { 
+                selectedCell.innerHTML = `<svg width="14" height="38" viewBox="0 0 14 38" fill="none"><path d="M12 2H2V36H12" stroke="currentColor" stroke-width="3.5" stroke-linecap="square" stroke-linejoin="miter"/></svg>`; 
+                selectedCell.classList.add('is-only-start-bracket'); 
+            } 
+            else if (type === 'only-end-bracket') { 
+                selectedCell.innerHTML = `<svg width="14" height="38" viewBox="0 0 14 38" fill="none"><path d="M2 2H12V36H2" stroke="currentColor" stroke-width="3.5" stroke-linecap="square" stroke-linejoin="miter"/></svg>`; 
+                selectedCell.classList.add('is-only-end-bracket'); 
+            }
             saveState(); 
             moveToNext();
         }
@@ -601,13 +648,32 @@
             else if (symbol === '%') { selectedCell.innerHTML = `<svg class="repeat-svg" width="30" height="30" viewBox="0 0 24 24"><circle cx="6.5" cy="7.5" r="3.5" fill="currentColor"/><circle cx="17.5" cy="16.5" r="3.5" fill="currentColor"/><line x1="4" y1="21" x2="20" y2="3" stroke-width="4" stroke-linecap="round"/></svg>`; selectedCell.classList.add('is-repeat'); } 
             else if (symbol === 'pausa') { selectedCell.innerHTML = `<svg class="pause-svg" width="46" height="32" viewBox="0 0 100 70"><path fill="#FF0000" fill-rule="evenodd" d="M 50 0 C 77.6 0 100 15.7 100 35 C 100 54.3 77.6 70 50 70 C 22.4 70 0 54.3 0 35 C 0 15.7 22.4 0 50 0 Z M 50 11 C 41.5 11 36 21 36 35 C 36 49 41.5 59 50 59 C 58.5 59 64 49 64 35 C 64 21 58.5 11 50 11 Z" transform="rotate(-18 50 35)"/></svg>`; selectedCell.classList.add('is-pause'); } 
             else if (symbol === '↑') { selectedCell.innerHTML = `<svg class="arrow-svg" width="32" height="32" viewBox="0 0 24 24"><line x1="12" y1="22" x2="12" y2="4" stroke-width="4" stroke-linecap="round"/><polyline points="5,11 12,4 19,11" fill="none" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>`; selectedCell.classList.add('is-arrow'); } 
+            else if (symbol === 'negra') { selectedCell.innerHTML = `<svg width="32" height="32" viewBox="0 0 24 24"><circle cx="9" cy="17" r="5" fill="#FF0000" stroke="#FF0000" stroke-width="1"/><line x1="13.5" y1="17" x2="13.5" y2="3" stroke="#FF0000" stroke-width="3.5" stroke-linecap="round"/></svg>`; selectedCell.classList.add('is-quarter-note'); } 
             else if (symbol === '←') { selectedCell.innerHTML = `<svg class="arrow-svg" width="28" height="24" viewBox="0 0 24 24"><line x1="20" y1="12" x2="4" y2="12" stroke-width="4" stroke-linecap="round"/><polyline points="11,5 4,12 11,19" fill="none" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="arrow-subnum"></span>`; selectedCell.classList.add('is-left-arrow-container'); } 
             else { 
                 selectedCell.textContent = symbol; 
+                if (symbol.length >= 3) selectedCell.classList.add('is-long-chord'); 
                 if (symbol === '|') selectedCell.classList.add('is-bar'); 
                 if (symbol === '/') selectedCell.classList.add('is-slash'); 
             }
             if (symbol !== '←') moveToNext(); 
+            saveState();
+        }
+
+        function insertRepeatBar() {
+            if (!selectedCell) return;
+            selectedCell.className = 'cell selected';
+            selectedCell.innerHTML = `<svg class="repeat-svg" width="30" height="30" viewBox="0 0 24 24"><circle cx="6.5" cy="7.5" r="3.5" fill="currentColor"/><circle cx="17.5" cy="16.5" r="3.5" fill="currentColor"/><line x1="4" y1="21" x2="20" y2="3" stroke-width="4" stroke-linecap="round"/></svg>`;
+            selectedCell.classList.add('is-repeat');
+            
+            const nextCell = selectedCell.nextElementSibling;
+            if (nextCell) {
+                selectCell(nextCell);
+                selectedCell.className = 'cell selected';
+                selectedCell.textContent = '|';
+                selectedCell.classList.add('is-bar');
+                moveToNext();
+            }
             saveState();
         }
 
@@ -652,7 +718,7 @@
                 undoStack.push(snapshot); 
                 if (undoStack.length > maxUndoSteps) undoStack.shift(); 
             } 
-            localStorage.setItem('sheetData_v8', snapshot); 
+            localStorage.setItem('sheetData_v9', snapshot); 
         }
 
         function applySnapshot(snapshotJSON) { 
@@ -694,12 +760,12 @@
                 undoStack.pop(); 
                 const previousState = undoStack[undoStack.length - 1]; 
                 applySnapshot(previousState); 
-                localStorage.setItem('sheetData_v8', previousState); 
+                localStorage.setItem('sheetData_v9', previousState); 
             } 
         }
 
         function loadState() { 
-            const saved = localStorage.getItem('sheetData_v8'); 
+            const saved = localStorage.getItem('sheetData_v9'); 
             if (!saved) return; 
             applySnapshot(saved); 
             undoStack.push(saved); 
@@ -717,7 +783,13 @@
             const paperElement = document.getElementById('sheetPaper');
             const titleText = document.querySelector('.sheet-title').textContent; 
 
-            const fileName = titleText.trim().toLowerCase() || 'gorrion';
+            const formattedTitle = titleText.trim()
+                .toLowerCase()
+                .split(/\s+/)
+                .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                .join(' ');
+
+            const fileName = formattedTitle || 'Gorrion';
 
             html2canvas(paperElement, { 
                 scale: 2, 
@@ -756,7 +828,6 @@
             }); 
         }
         
-        // --- FUNCIÓN DE BORRADO UNIFICADA ---
         function handleDeleteButton() {
             if (!selectedCell) return;
             if (selectedCellsList.length > 1) {
