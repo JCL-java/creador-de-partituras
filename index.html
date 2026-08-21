@@ -363,7 +363,7 @@
 
     <div class="main-content">
         <div class="paper" id="sheetPaper">
-            <div class="sheet-title" id="sheetTitle" contenteditable="true"></div>
+            <div class="sheet-title" id="sheetTitle" contenteditable="true">GORRION 01</div>
             <div class="rows-container" id="rowsContainer"></div>
         </div>
     </div>
@@ -841,6 +841,14 @@
         document.querySelectorAll('.cell').forEach(cell => { cell.className = 'cell'; cell.innerHTML = ''; cell.style.color = ''; }); 
         document.querySelectorAll('.row-label').forEach(label => { label.textContent = ''; }); 
         document.querySelectorAll('.sheet-row').forEach(r => r.style.color = ''); 
+        
+        // Limpiar también el título de la hoja actual
+        const sheetTitle = document.getElementById('sheetTitle');
+        if (sheetTitle) sheetTitle.textContent = '';
+        if (pagesData && pagesData[activePageIndex]) {
+            pagesData[activePageIndex].title = '';
+        }
+
         const firstCell = document.querySelector('.cell[data-row="0"][data-col="0"]'); 
         if (firstCell) selectCell(firstCell); 
         saveState(); 
