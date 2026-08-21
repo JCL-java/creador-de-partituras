@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Editor de Anotaciones Musicales</title>
+    <title>Editor de Anotaciones Musicales - Multipágina</title>
     <!-- Librerías para captura de pantalla, procesamiento PDF y metadatos -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -11,20 +11,8 @@
 
     <style>
         /* --- ESTILOS GENERALES Y FONDO --- */
-        * { 
-            box-sizing: border-box; 
-            margin: 0; 
-            padding: 0; 
-            font-family: 'Segoe UI', Arial, sans-serif; 
-        }
-        html, body { 
-            background-color: #0b0f19; 
-            color: #ffffff; 
-            display: flex; 
-            height: 100vh; 
-            width: 100vw; 
-            overflow: hidden; 
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; }
+        html, body { background-color: #0b0f19; color: #ffffff; display: flex; height: 100vh; width: 100vw; overflow: hidden; }
 
         /* --- BARRA LATERAL (SIDEBAR) --- */
         .sidebar { 
@@ -39,232 +27,182 @@
             overflow-y: auto; 
             z-index: 10; 
         }
-        .sidebar h3 { 
-            font-size: 0.9rem; 
-            color: #6b7280; 
-            text-transform: uppercase; 
-            letter-spacing: 1px; 
-            margin-bottom: 12px; 
-        }
-        .palette-group { 
-            display: grid; 
-            grid-template-columns: repeat(4, 1fr); 
-            gap: 10px; 
-        }
+        .sidebar h3 { font-size: 0.9rem; color: #6b7280; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
+        .palette-group { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
 
-        /* --- BOTONES DE LA PALETA --- */
-        .symbol-btn { 
-            background-color: #1f2937; 
-            color: #f3f4f6; 
-            border: 1px solid #374151; 
-            padding: 14px 6px; 
-            min-height: 52px; 
-            border-radius: 6px; 
-            font-weight: bold; 
-            font-size: 1.1rem; 
-            cursor: pointer; 
-            text-align: center; 
-            user-select: none; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-        }
-        .symbol-btn:hover { 
-            background-color: #2563eb; 
-            border-color: #3b82f6; 
-        }
-
-        .symbol-btn.btn-delete {
-            background-color: #22106C !important;
-            border-color: #311c8a !important; 
-        }
-        .symbol-btn.btn-delete:hover {
-            background-color: #2d168f !important; 
-        }
-
-        .symbol-btn.btn-large-symbol {
-            font-size: 1.6rem !important;
-            font-weight: 700;
-        }
-
-        /* --- BOTONES DE ACCIÓN --- */
-        .danger-btn {
-            background-color: #991b1b; 
-            color: white;
-            border: 1px solid #b91c1c; 
-            padding: 14px; 
-            border-radius: 8px; 
-            font-size: 1rem; 
-            font-weight: bold; 
-            cursor: pointer; 
-            width: 100%;
-        }
-        .danger-btn:hover {
-            background-color: #7f1d1d;
-        }
-
-        .export-btn { 
-    /* margin-top: auto;  👈 Borra esta línea si la tienes */
-    background-color: #059669; 
-    color: white; 
-    border: none; 
-    padding: 14px; 
-    border-radius: 8px; 
-    font-size: 1.1rem; 
-    font-weight: bold; 
-    cursor: pointer; 
-    display: flex; 
-    align-items: center; 
-    justify-content: center; 
-    gap: 8px; 
-    width: 100%;
-}
-        .export-btn:hover { 
-            background-color: #047857; 
-        }
-
-        .import-btn {
-            background-color: #2563eb;
-            color: white;
-            border: none;
-            padding: 14px;
+        /* --- NAVEGACIÓN DE HOJAS DE TRABAJO --- */
+        .pages-control-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            background-color: #1f2937;
+            padding: 12px;
             border-radius: 8px;
-            font-size: 1.1rem;
+            border: 1px solid #374151;
+        }
+        .pages-bar {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr); /* Crea exactamente 4 columnas */
+    gap: 6px;
+    width: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
+    max-height: 180px;
+    padding-bottom: 4px;
+}
+
+.page-tab-btn {
+    background-color: #111827;
+    color: #9ca3af;
+    border: 1px solid #374151;
+    padding: 8px 4px;
+    border-radius: 6px;
+    font-weight: bold;
+    font-size: 0.85rem;
+    cursor: pointer;
+    text-align: center;
+    width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+        .page-tab-btn.active {
+            background-color: #2563eb;
+            color: #ffffff;
+            border-color: #3b82f6;
+        }
+        .page-actions-row {
+            display: flex;
+            gap: 8px;
+        }
+        .custom-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(3px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+}
+
+.custom-modal-overlay.active {
+    display: flex;
+}
+
+.custom-modal-box {
+    background: #111827;
+    border: 1px solid #374151;
+    border-radius: 12px;
+    padding: 24px;
+    width: 340px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+    text-align: center;
+}
+
+.custom-modal-box p {
+    color: #ffffff;
+    font-size: 0.95rem;
+    margin-bottom: 20px;
+    line-height: 1.4;
+}
+
+.custom-modal-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.custom-modal-actions button {
+    flex: 1;
+    padding: 10px;
+    border-radius: 6px;
+    font-weight: bold;
+    cursor: pointer;
+    border: none;
+    font-size: 0.85rem;
+}
+
+.btn-modal-cancel {
+    background: #374151;
+    color: #ffffff;
+}
+
+.btn-modal-cancel:hover {
+    background: #4b5563;
+}
+
+.btn-modal-ok {
+    background: #991b1b;
+    color: #ffffff;
+}
+
+.btn-modal-ok:hover {
+    background: #b91c1c;
+}
+
+
+        .page-action-btn {
+            flex: 1;
+            background-color: #374151;
+            color: #ffffff;
+            border: none;
+            padding: 8px;
+            border-radius: 6px;
+            font-size: 0.85rem;
             font-weight: bold;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 8px;
-            text-align: center;
+            gap: 4px;
         }
-        .import-btn:hover {
-            background-color: #1d4ed8;
+        .page-action-btn:hover { background-color: #4b5563; }
+        .page-action-btn.btn-delete-page { background-color: #7f1d1d; }
+        .page-action-btn.btn-delete-page:hover { background-color: #991b1b; }
+
+        /* --- BOTONES DE LA PALETA --- */
+        .symbol-btn { 
+            background-color: #1f2937; color: #f3f4f6; border: 1px solid #374151; 
+            padding: 14px 6px; min-height: 52px; border-radius: 6px; font-weight: bold; 
+            font-size: 1.1rem; cursor: pointer; text-align: center; user-select: none; 
+            display: flex; align-items: center; justify-content: center; 
         }
+        .symbol-btn:hover { background-color: #2563eb; border-color: #3b82f6; }
+        .symbol-btn.btn-delete { background-color: #22106C !important; border-color: #311c8a !important; }
+        .symbol-btn.btn-delete:hover { background-color: #2d168f !important; }
+        .symbol-btn.btn-large-symbol { font-size: 1.6rem !important; font-weight: 700; }
+
+        /* --- BOTONES DE ACCIÓN --- */
+        .danger-btn { background-color: #991b1b; color: white; border: 1px solid #b91c1c; padding: 14px; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; width: 100%; }
+        .danger-btn:hover { background-color: #7f1d1d; }
+        .export-btn { background-color: #059669; color: white; border: none; padding: 14px; border-radius: 8px; font-size: 1.1rem; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; }
+        .export-btn:hover { background-color: #047857; }
+        .import-btn { background-color: #2563eb; color: white; border: none; padding: 14px; border-radius: 8px; font-size: 1.1rem; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; text-align: center; }
+        .import-btn:hover { background-color: #1d4ed8; }
 
         /* --- CONTENEDOR PRINCIPAL Y LIENZO --- */
-        .main-content { 
-            flex: 1; 
-            padding: 20px; 
-            background-color: #0b0f19; 
-            overflow: auto; 
-            display: flex; 
-            justify-content: center; 
-            align-items: center; 
-            height: 100vh; 
-            box-sizing: border-box; 
-        }
-        .paper { 
-            background-color: #000000 !important; 
-            color: #ffffff; 
-            width: 100%; 
-            max-width: 1400px; 
-            aspect-ratio: 297 / 210; 
-            padding: 20px 45px 25px 45px; 
-            border: 2px solid #1e293b; 
-            border-radius: 4px; 
-            display: flex; 
-            flex-direction: column; 
-            box-sizing: border-box; 
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6); 
-            overflow: hidden; 
-        }
+        .main-content { flex: 1; padding: 20px; background-color: #0b0f19; overflow: auto; display: flex; justify-content: center; align-items: center; height: 100vh; box-sizing: border-box; }
+        .paper { background-color: #000000 !important; color: #ffffff; width: 100%; max-width: 1400px; aspect-ratio: 297 / 210; padding: 20px 45px 25px 45px; border: 2px solid #1e293b; border-radius: 4px; display: flex; flex-direction: column; box-sizing: border-box; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6); overflow: hidden; }
 
-        .sheet-title { 
-            text-align: center; 
-            font-size: 2.0rem; 
-            font-weight: 900; 
-            outline: none; 
-            margin-bottom: 8px; 
-            text-transform: uppercase; 
-            color: #FFFFFF; 
-            letter-spacing: 1px; 
-            line-height: 1; 
-        }
+        .sheet-title { text-align: center; font-size: 2.0rem; font-weight: 900; outline: none; margin-bottom: 8px; text-transform: uppercase; color: #FFFFFF; letter-spacing: 1px; line-height: 1; }
 
         /* --- FILAS Y CELDAS --- */
-        .rows-container { 
-            display: flex;
-            flex-direction: column;
-            justify-content: flex-start; 
-            gap: 20px; 
-            flex: 1; 
-            overflow: hidden; 
-            margin-top: 5px; 
-        }
-        .sheet-row { 
-            display: flex; 
-            align-items: center; 
-            width: 100%; 
-            height: 36px; 
-            gap: 8px; 
-            position: relative; 
-        }
-        .row-label { 
-            width: 130px; 
-            min-width: 130px; 
-            max-width: 130px; 
-            font-weight: 700; 
-            font-size: 1.4rem; 
-            outline: none; 
-            border-bottom: none; 
-            padding-right: 4px; 
-            color: inherit; 
-            white-space: nowrap; 
-            overflow: hidden; 
-            transition: background-color 0.2s; 
-        }
-        .row-label:focus { 
-            background-color: #1f2937; 
-            outline: none; 
-        }
-        .row-cells { 
-            display: grid; 
-            grid-template-columns: repeat(32, minmax(0, 1fr)); 
-            align-items: center; 
-            flex: 1; 
-            height: 100%; 
-            gap: 4px; 
-            margin-left: 10px; 
-        }
+        .rows-container { display: flex; flex-direction: column; justify-content: flex-start; gap: 20px; flex: 1; overflow: hidden; margin-top: 5px; }
+        .sheet-row { display: flex; align-items: center; width: 100%; height: 36px; gap: 8px; position: relative; }
+        .row-label { width: 130px; min-width: 130px; max-width: 130px; font-weight: 700; font-size: 1.4rem; outline: none; border-bottom: none; padding-right: 4px; color: inherit; white-space: nowrap; overflow: hidden; transition: background-color 0.2s; }
+        .row-label:focus { background-color: #1f2937; outline: none; }
+        .row-cells { display: grid; grid-template-columns: repeat(32, minmax(0, 1fr)); align-items: center; flex: 1; height: 100%; gap: 4px; margin-left: 10px; }
 
-        .cell { 
-            height: 100%; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            font-weight: 700; 
-            font-size: 1.6rem; 
-            line-height: 1;
-            letter-spacing: -0.5px; 
-            cursor: pointer; 
-            user-select: none; 
-            position: relative; 
-            color: inherit; 
-            white-space: nowrap; 
-            overflow: visible; 
-            border-bottom: none; 
-            text-align: center;
-        }
-        .cell.multi-selected {
-            background-color: rgba(37, 99, 235, 0.45) !important;
-            outline: 1px dashed #60a5fa;
-        }
-        .cell.selected::after { 
-            content: ''; 
-            position: absolute; 
-            bottom: 1px; 
-            left: 0; 
-            width: 100%; 
-            height: 3px; 
-            background-color: #FF0000; 
-            animation: blink-cursor 1s step-end infinite; 
-        }
+        .cell { height: 100%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1.6rem; line-height: 1; letter-spacing: -0.5px; cursor: pointer; user-select: none; position: relative; color: inherit; white-space: nowrap; overflow: visible; border-bottom: none; text-align: center; }
+        .cell.multi-selected { background-color: rgba(37, 99, 235, 0.45) !important; outline: 1px dashed #60a5fa; }
+        .cell.selected::after { content: ''; position: absolute; bottom: 1px; left: 0; width: 100%; height: 3px; background-color: #FF0000; animation: blink-cursor 1s step-end infinite; }
         @keyframes blink-cursor { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
         
         .cell svg circle, .cell svg rect, .cell svg line, .cell svg polyline { fill: none; stroke: currentColor; }
         .cell.is-repeat svg circle { fill: currentColor !important; }
-        
         .cell.is-pause svg path { fill: #FF0000 !important; stroke: none; fill-rule: evenodd; }
         .cell.is-pause svg { display: block; margin: 0 auto; }
 
@@ -272,54 +210,27 @@
         .cell.is-arrow svg *, .cell.is-left-arrow-container svg *, .cell.is-quarter-note svg * { stroke: #FF0000 !important; fill: none; }
         .cell.is-left-arrow-container .arrow-subnum, .cell.is-power .power-num { color: #FF0000 !important; }
 
-        /* REGLA STRICTA PARA FLECHA SVG */
-        .cell.is-arrow {
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-        }
-        .cell.is-arrow svg.arrow-svg {
-            width: 30px !important;
-            height: 30px !important;
-            display: block !important;
-        }
+        .cell.is-arrow { display: flex !important; align-items: center !important; justify-content: center !important; }
+        .cell.is-arrow svg.arrow-svg { width: 30px !important; height: 30px !important; display: block !important; }
 
-        .cell.is-only-start-bracket, .cell.is-only-end-bracket { 
-            display: flex;
-            align-items: center;
-            justify-content: center; 
-        }
-        .cell.is-only-start-bracket svg, .cell.is-only-end-bracket svg {
-            display: block;
-        }
+        .cell.is-only-start-bracket, .cell.is-only-end-bracket { display: flex; align-items: center; justify-content: center; }
+        .cell.is-only-start-bracket svg, .cell.is-only-end-bracket svg { display: block; }
 
         .cell .bar-char { font-size: 2.0rem; font-weight: 700; margin: 0; line-height: 1; }
         .cell.is-bar, .cell.is-slash { font-size: 2.0rem !important; font-weight: 700 !important; }
 
         .cell.is-power { position: relative; }
-        .cell.is-power .power-num { position: absolute; top: -0px; left: 5px; font-size: 1.4rem; font-weight: 900; line-height: 1; }
+        .cell.is-power .power-num { position: absolute; top: 0px; left: 5px; font-size: 1.4rem; font-weight: 900; line-height: 1; }
         .cell.is-left-arrow-container { display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1; }
         .cell.is-left-arrow-container .arrow-subnum { font-size: 1.1rem; font-weight: 900; margin-top: -3px; }
 
         .color-select { width: 100%; background-color: #1f2937; color: #ffffff; border: 1px solid #374151; padding: 12px; border-radius: 6px; font-size: 1.1rem; font-weight: bold; cursor: pointer; outline: none; }
         .color-select option { background-color: #111827; color: #ffffff; }
-        .cell.has-red-color,
-.cell.has-red-color *,
-.row .cell.has-red-color,
-.row .cell.has-red-color * {
-    color: #FF0000 !important;
-    fill: #FF0000 !important;
-    stroke: #FF0000 !important;
-}
-    
-    
     </style>
-
 </head>
 <body>
 
-    <div class="sidebar">
-        
+    <div class="sidebar">    
         <div>
             <h3>Acordes</h3>
             <div class="palette-group">
@@ -417,7 +328,16 @@
                 <button class="symbol-btn" style="color: #FF0000;" onclick="insertSymbol('x8', true)">x8</button>
                 <button class="symbol-btn" style="color: #FF0000;" onclick="insertSymbol('x9', true)">x9</button>
                 <button class="symbol-btn" style="background-color: #991b1b; color: white;" onclick="applyRedToSelected()">Rojo</button>
-</button>
+            </div>
+        </div>
+        <div>
+            <h3>Hojas de Trabajo</h3>
+            <div class="pages-control-container">
+                <div class="pages-bar" id="pagesBar"></div>
+                <div class="page-actions-row">
+                    <button class="page-action-btn" onclick="addNewPage()">➕ Nueva Hoja</button>
+                    <button class="page-action-btn btn-delete-page" onclick="deleteCurrentPage()">🗑️ Eliminar</button>
+                </div>
             </div>
         </div>
 
@@ -435,16 +355,15 @@
 
         <button class="export-btn" onclick="exportToPDF()">📄 Descargar PDF</button>
 
-<div style="margin-top: 10px;">
-    <input type="file" id="pdfFileInput" accept=".pdf" style="display: none;" onchange="importPDFWithMetadata(event)">
-    <label for="pdfFileInput" class="import-btn" style="width: 100%;">📂 Abrir PDF</label>
-</div>
-    
+        <div style="margin-top: 10px;">
+            <input type="file" id="pdfFileInput" accept=".pdf" style="display: none;" onchange="importPDFWithMetadata(event)">
+            <label for="pdfFileInput" class="import-btn" style="width: 100%;">📂 Abrir PDF</label>
+        </div>
     </div>
 
     <div class="main-content">
         <div class="paper" id="sheetPaper">
-            <div class="sheet-title" id="sheetTitle" contenteditable="true">GORRION</div>
+            <div class="sheet-title" id="sheetTitle" contenteditable="true">GORRION 01</div>
             <div class="rows-container" id="rowsContainer"></div>
         </div>
     </div>
@@ -465,13 +384,23 @@
         const maxCols = 31;
         const maxRows = 15;
 
-        // SVG Oficial de la flecha hacia arriba
+        // ESTRUCTURA DE PÁGINAS (MULTIHOSA)
+        let docTitle = "GORRION";
+        let activePageIndex = 0;
+        let pagesData = [ createEmptyPageObject() ];
+
         const ARROW_UP_SVG = `<svg class="arrow-svg" viewBox="0 0 24 24"><line x1="12" y1="22" x2="12" y2="4" stroke-width="4" stroke-linecap="round"/><polyline points="5,11 12,4 19,11" fill="none" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 
         const rowsContainer = document.getElementById('rowsContainer');
         const sheetTitle = document.getElementById('sheetTitle');
         const colorSelect = document.getElementById('textColorSelect');
-        
+        const pagesBar = document.getElementById('pagesBar');
+
+        function createEmptyPageObject() {
+            return { title: "", labels: [...defaultLabels], rowColors: {}, cells: [] };
+        }
+
+        // Renderizar Cuadrícula Inicial
         for (let i = 0; i <= maxRows; i++) { 
             const row = document.createElement('div');
             row.className = 'sheet-row';
@@ -483,6 +412,7 @@
             label.textContent = defaultLabels[i] || "";
             label.addEventListener('input', saveState);
             label.addEventListener('click', () => { const firstCell = row.querySelector('.cell'); if (firstCell) selectCell(firstCell); });
+            
             row.appendChild(label);
             const cellsContainer = document.createElement('div');
             cellsContainer.className = 'row-cells';
@@ -515,8 +445,193 @@
                 if (selectedCell) selectedCell.classList.add('selected'); 
             } 
         });
-        sheetTitle.addEventListener('input', saveState);
 
+        sheetTitle.addEventListener('input', () => {
+            const fullText = sheetTitle.textContent.trim();
+            if (pagesData[activePageIndex]) {
+                pagesData[activePageIndex].title = fullText;
+            }
+            const match = fullText.match(/^(.*?)(?:\s+\d+)?$/);
+            if (match && match[1].trim() !== "") {
+                docTitle = match[1].trim();
+            }
+            saveState();
+        });
+
+        function showCustomConfirm(message) {
+    return new Promise((resolve) => {
+        const modal = document.getElementById('customConfirmModal');
+        const msgEl = document.getElementById('customConfirmMessage');
+        const btnOk = document.getElementById('customConfirmBtnOk');
+        const btnCancel = document.getElementById('customConfirmBtnCancel');
+
+        msgEl.textContent = message;
+        btnCancel.style.display = 'inline-block';
+        modal.classList.add('active');
+
+        // Enfocar el botón Aceptar para responder al Enter directamente
+        setTimeout(() => btnOk.focus(), 50);
+
+        const cleanup = () => {
+            modal.classList.remove('active');
+            btnOk.removeEventListener('click', handleOk);
+            btnCancel.removeEventListener('click', handleCancel);
+            document.removeEventListener('keydown', handleKeyDown);
+        };
+
+        const handleOk = () => { cleanup(); resolve(true); };
+        const handleCancel = () => { cleanup(); resolve(false); };
+
+        const handleKeyDown = (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                handleOk();
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                handleCancel();
+            }
+        };
+
+        btnOk.addEventListener('click', handleOk);
+        btnCancel.addEventListener('click', handleCancel);
+        document.addEventListener('keydown', handleKeyDown);
+    });
+}
+
+        // NAVEGACIÓN Y GESTIÓN DE PÁGINAS
+        function renderPagesUI() {
+            pagesBar.innerHTML = '';
+            pagesData.forEach((_, idx) => {
+                const btn = document.createElement('button');
+                btn.className = `page-tab-btn ${idx === activePageIndex ? 'active' : ''}`;
+                btn.textContent = `Hoja ${idx + 1}`;
+                btn.onclick = () => switchPage(idx);
+                pagesBar.appendChild(btn);
+            });
+            updateHeaderTitle();
+        }
+
+        function updateHeaderTitle() {
+    const pageObj = pagesData[activePageIndex];
+    if (pageObj) {
+        sheetTitle.textContent = pageObj.title || "";
+    }
+}
+
+       function saveCurrentPageToMemory(pageIndex = activePageIndex) {
+    if (!pagesData[pageIndex]) return;
+    
+    // Si intentamos guardar la página activa pero el HTML tiene la clase de cambio, abortamos
+    pagesData[pageIndex].title = sheetTitle.textContent.trim();
+    
+    pagesData[pageIndex].labels = [];
+    pagesData[pageIndex].rowColors = {};
+    pagesData[pageIndex].cells = [];
+    
+    document.querySelectorAll('.row-label').forEach(label => pagesData[pageIndex].labels.push(label.textContent));
+    document.querySelectorAll('.sheet-row').forEach(row => { 
+        if (row.style.color) pagesData[pageIndex].rowColors[row.dataset.rowIndex] = row.style.color; 
+    });
+    
+    document.querySelectorAll('.cell').forEach(cell => {
+        if (cell.innerHTML.trim() !== '') {
+            pagesData[pageIndex].cells.push({
+                row: cell.dataset.row,
+                col: cell.dataset.col,
+                className: cell.className.replace('selected', '').replace('multi-selected', '').trim(),
+                html: cell.innerHTML,
+                color: cell.style.color || ''
+            });
+        }
+    });
+}
+
+        const waitFrame = () => new Promise(resolve => setTimeout(resolve, 150));
+
+        function loadPageFromMemory(index) {
+    if (!pagesData[index]) return;
+    
+    activePageIndex = index;
+
+    // 1. Limpiar pantalla por completo antes de renderizar
+    sheetTitle.textContent = "";
+    document.querySelectorAll('.cell').forEach(cell => { 
+        cell.className = 'cell'; 
+        cell.innerHTML = ''; 
+        cell.style.color = ''; 
+    });
+    document.querySelectorAll('.sheet-row').forEach(r => r.style.color = '');
+
+    const pageObj = pagesData[index];
+
+    // 2. Cargar Título
+    sheetTitle.textContent = pageObj.title || "";
+
+    // 3. Cargar Labels de filas
+    const labelDivs = document.querySelectorAll('.row-label');
+    labelDivs.forEach((lDiv, i) => { lDiv.textContent = pageObj.labels[i] || ""; });
+
+    // 4. Cargar Colores de filas
+    if (pageObj.rowColors) {
+        Object.keys(pageObj.rowColors).forEach(rowIndex => {
+            const targetRow = document.querySelector(`.sheet-row[data-row-index="${rowIndex}"]`);
+            if (targetRow) targetRow.style.color = pageObj.rowColors[rowIndex];
+        });
+    }
+
+    // 5. Cargar Celdas
+    if (pageObj.cells) {
+        pageObj.cells.forEach(cData => {
+            const cell = document.querySelector(`.cell[data-row="${cData.row}"][data-col="${cData.col}"]`);
+            if (cell) {
+                let rawClasses = cData.className.split(' ').filter(cls => cls !== 'cell' && cls !== 'selected' && cls !== 'multi-selected');
+                let cellContent = cData.html;
+                if (cellContent.includes('↑') || cellContent.trim() === '↑' || rawClasses.includes('is-arrow')) {
+                    cellContent = ARROW_UP_SVG;
+                    if (!rawClasses.includes('is-arrow')) rawClasses.push('is-arrow');
+                }
+                cell.className = 'cell ' + rawClasses.join(' ');
+                cell.innerHTML = cellContent;
+                if (cData.color) cell.style.color = cData.color;
+            }
+        });
+    }
+
+    // 6. Resaltar botón activo en el menú lateral
+    renderPagesUI();
+}
+
+        function switchPage(index) {
+            if (index === activePageIndex) return;
+            loadPageFromMemory(index);
+            saveState();
+        }
+
+        function addNewPage() {
+            saveCurrentPageToMemory();
+            pagesData.push(createEmptyPageObject());
+            loadPageFromMemory(pagesData.length - 1);
+            saveState();
+        }
+
+        async function deleteCurrentPage() {
+   if (pagesData.length <= 1) {
+    await showCustomAlert("Debe haber al menos una hoja de trabajo.");
+    return;
+}
+    
+    const confirmed = await showCustomConfirm(`¿Eliminar la Hoja ${activePageIndex + 1}?`);
+    if (confirmed) {
+        pagesData.splice(activePageIndex, 1);
+        if (activePageIndex >= pagesData.length) {
+            activePageIndex = pagesData.length - 1;
+        }
+        loadPageFromMemory(activePageIndex);
+        saveState();
+    }
+}
+
+        // LÓGICA DE SELECCIÓN Y EDICIÓN DE CELDAS
         function selectCellRange(start, end) {
             clearSelectionStyles();
             const minRow = Math.min(start.row, end.row), maxRow = Math.max(start.row, end.row), minCol = Math.min(start.col, end.col), maxCol = Math.max(start.col, end.col);
@@ -535,21 +650,10 @@
                 if (selectedCell) selectedCell.classList.remove('selected'); 
                 selectedCell = activeCell; 
                 selectedCell.classList.add('selected'); 
-                const row = selectedCell.closest('.sheet-row'); 
-                if (row) { 
-                    const computedColor = window.getComputedStyle(row).color; 
-                    if (computedColor.includes('40, 131, 26') || row.style.color === '#28831A') { 
-                        colorSelect.value = '#28831A'; 
-                    } else { 
-                        colorSelect.value = '#FFFFFF'; 
-                    } 
-                } 
             }
         }
 
-        function clearSelectionStyles() { 
-            document.querySelectorAll('.cell.multi-selected').forEach(c => c.classList.remove('multi-selected')); 
-        }
+        function clearSelectionStyles() { document.querySelectorAll('.cell.multi-selected').forEach(c => c.classList.remove('multi-selected')); }
 
         function selectCell(cell) {
             clearSelectionStyles();
@@ -560,52 +664,27 @@
             const row = selectedCell.closest('.sheet-row');
             if (row) { 
                 const computedColor = window.getComputedStyle(row).color; 
-                if (computedColor.includes('40, 131, 26') || row.style.color === '#28831A') { 
-                    colorSelect.value = '#28831A'; 
-                } else { 
-                    colorSelect.value = '#FFFFFF'; 
-                } 
+                if (computedColor.includes('40, 131, 26') || row.style.color === '#28831A') colorSelect.value = '#28831A'; 
+                else colorSelect.value = '#FFFFFF'; 
             }
         }
 
         function changeActiveRowTextColor(colorHex) { 
-    if (!selectedCell) return; 
-    
-    const targetRow = selectedCell.closest('.sheet-row'); 
-    
-    if (targetRow) { 
-        targetRow.style.color = colorHex; 
-
-        // Lista exacta de las clases de símbolos que SIEMPRE deben ser rojos
-        const fixedRedClasses = [
-            'is-arrow', 
-            'is-left-arrow-container', 
-            'is-power', 
-            'is-pause', 
-            'is-slash', 
-            'is-quarter-note'
-        ];
-
-        const cells = targetRow.querySelectorAll('.cell');
-        cells.forEach(cell => {
-            // Verificamos si la celda es de los símbolos fijos rojos
-            const isAlwaysRedSymbol = fixedRedClasses.some(cls => cell.classList.contains(cls));
-
-            // Si NO es un símbolo fijo rojo (es nota, corchete, texto, etc.), limpiamos el rojo manual
-            if (!isAlwaysRedSymbol) {
-                cell.style.color = ''; 
-                
-                const svgs = cell.querySelectorAll('svg *');
-                svgs.forEach(el => {
-                    el.style.fill = '';
-                    el.style.stroke = '';
+            if (!selectedCell) return; 
+            const targetRow = selectedCell.closest('.sheet-row'); 
+            if (targetRow) { 
+                targetRow.style.color = colorHex; 
+                const fixedRedClasses = ['is-arrow', 'is-left-arrow-container', 'is-power', 'is-pause', 'is-slash', 'is-quarter-note'];
+                targetRow.querySelectorAll('.cell').forEach(cell => {
+                    if (!fixedRedClasses.some(cls => cell.classList.contains(cls))) {
+                        cell.style.color = ''; 
+                        cell.querySelectorAll('svg *').forEach(el => { el.style.fill = ''; el.style.stroke = ''; });
+                    }
                 });
-            }
-        });
+                saveState(); 
+            } 
+        }
 
-        saveState(); 
-    } 
-}
         document.addEventListener('keydown', (e) => {
             if (document.activeElement && document.activeElement.isContentEditable) return;
             if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); undoState(); return; }
@@ -618,11 +697,7 @@
             if (selectedCell.classList.contains('is-left-arrow-container') && /^[0-9]$/.test(e.key)) { 
                 e.preventDefault(); 
                 let subNum = selectedCell.querySelector('.arrow-subnum'); 
-                if (!subNum) { 
-                    subNum = document.createElement('span'); 
-                    subNum.className = 'arrow-subnum'; 
-                    selectedCell.appendChild(subNum); 
-                } 
+                if (!subNum) { subNum = document.createElement('span'); subNum.className = 'arrow-subnum'; selectedCell.appendChild(subNum); } 
                 subNum.textContent = e.key; 
                 saveState(); 
                 return; 
@@ -642,7 +717,7 @@
             
             if (moved) { 
                 const nextTarget = document.querySelector(`.cell[data-row="${currentRow}"][data-col="${currentCol}"]`); 
-                if (nextTarget) { selectCell(nextTarget); } 
+                if (nextTarget) selectCell(nextTarget); 
             }
         });
 
@@ -658,15 +733,11 @@
         function cutSelectedRange() {
             if (!selectedCellsList.length && !selectedCell) return;
             copySelectedRange();
-            if (selectedCellsList.length > 1) {
-                clearSelectedRange();
-            } else {
-                clearCell();
-            }
+            if (selectedCellsList.length > 1) clearSelectedRange(); else clearCell();
         }
 
         function clearSelectedRange() { 
-            selectedCellsList.forEach(cell => { cell.className = 'cell'; cell.innerHTML = ''; }); 
+            selectedCellsList.forEach(cell => { cell.className = 'cell'; cell.innerHTML = ''; cell.style.color = ''; }); 
             clearSelectionStyles(); 
             if (selectedCell) selectCell(selectedCell); 
             saveState(); 
@@ -699,8 +770,7 @@
             if (type === 'only-start-bracket') { 
                 selectedCell.innerHTML = `<svg width="14" height="38" viewBox="0 0 14 38" fill="none"><path d="M12 2H2V36H12" stroke="currentColor" stroke-width="3.5" stroke-linecap="square" stroke-linejoin="miter"/></svg>`; 
                 selectedCell.classList.add('is-only-start-bracket'); 
-            } 
-            else if (type === 'only-end-bracket') { 
+            } else if (type === 'only-end-bracket') { 
                 selectedCell.innerHTML = `<svg width="14" height="38" viewBox="0 0 14 38" fill="none"><path d="M2 2H12V36H2" stroke="currentColor" stroke-width="3.5" stroke-linecap="square" stroke-linejoin="miter"/></svg>`; 
                 selectedCell.classList.add('is-only-end-bracket'); 
             }
@@ -756,95 +826,126 @@
             saveState();
         }
 
-       function clearCell(cell = selectedCell) {
-    if (!cell) return;
-    
-    // 1. Limpiamos el texto y contenido HTML interno
-    cell.innerHTML = '';
-    
-    // 2. LIMPIAMOS EL COLOR MANUAL para que no herede el rojo al volver a escribir
-    cell.style.color = '';
-    
-    // 3. Reseteamos las clases (si usas classes para estados)
-    cell.className = 'cell selected';
-    
-    if (typeof saveState === 'function') saveState();
-}
-
-        function clearAllCells() { 
-            if (confirm("¿Estás seguro de que deseas borrar todas las notas y nombres de filas?")) { 
-                document.querySelectorAll('.cell').forEach(cell => { cell.className = 'cell'; cell.innerHTML = ''; }); 
-                document.querySelectorAll('.row-label').forEach(label => { label.textContent = ''; }); 
-                document.querySelectorAll('.sheet-row').forEach(r => r.style.color = ''); 
-                const firstCell = document.querySelector('.cell[data-row="0"][data-col="0"]'); 
-                if (firstCell) selectCell(firstCell); 
-                saveState(); 
-            } 
+        function clearCell(cell = selectedCell) {
+            if (!cell) return;
+            cell.innerHTML = '';
+            cell.style.color = '';
+            const isSelected = cell === selectedCell;
+            cell.className = isSelected ? 'cell selected' : 'cell';
+            saveState();
         }
+
+        async function clearAllCells() { 
+    const confirmed = await showCustomConfirm("¿Estás seguro de que deseas borrar todas las notas y nombres de filas de esta hoja?");
+    if (confirmed) { 
+        document.querySelectorAll('.cell').forEach(cell => { cell.className = 'cell'; cell.innerHTML = ''; cell.style.color = ''; }); 
+        document.querySelectorAll('.row-label').forEach(label => { label.textContent = ''; }); 
+        document.querySelectorAll('.sheet-row').forEach(r => r.style.color = ''); 
+        const firstCell = document.querySelector('.cell[data-row="0"][data-col="0"]'); 
+        if (firstCell) selectCell(firstCell); 
+        saveState(); 
+    } 
+}
 
         function moveToNext() { 
             const nextCell = selectedCell.nextElementSibling; 
             if (nextCell) selectCell(nextCell); 
-            else { 
-                selectedCell.classList.remove('selected'); 
-                selectedCell = null; 
-            } 
+            else { selectedCell.classList.remove('selected'); selectedCell = null; } 
+        }
+        function showCustomAlert(message) {
+    return new Promise((resolve) => {
+        const modal = document.getElementById('customConfirmModal');
+        const msgEl = document.getElementById('customConfirmMessage');
+        const btnOk = document.getElementById('customConfirmBtnOk');
+        const btnCancel = document.getElementById('customConfirmBtnCancel');
+
+        msgEl.textContent = message;
+        btnCancel.style.display = 'none';
+        modal.classList.add('active');
+
+        // Enfocar el botón Aceptar
+        setTimeout(() => btnOk.focus(), 50);
+
+        const cleanup = () => {
+            modal.classList.remove('active');
+            btnCancel.style.display = 'inline-block';
+            btnOk.removeEventListener('click', handleOk);
+            document.removeEventListener('keydown', handleKeyDown);
+        };
+
+        const handleOk = () => { cleanup(); resolve(); };
+
+        const handleKeyDown = (e) => {
+            if (e.key === 'Enter' || e.key === 'Escape') {
+                e.preventDefault();
+                handleOk();
+            }
+        };
+
+        btnOk.addEventListener('click', handleOk);
+        document.addEventListener('keydown', handleKeyDown);
+    });
+}
+
+        function handleDeleteButton() {
+            if (!selectedCell) return;
+            if (selectedCellsList.length > 1) { clearSelectedRange(); return; }
+            let currentRow = parseInt(selectedCell.dataset.row), currentCol = parseInt(selectedCell.dataset.col);
+            if (selectedCell.innerHTML === '') { 
+                if (currentCol > 0) { 
+                    currentCol--; 
+                    const target = document.querySelector(`.cell[data-row="${currentRow}"][data-col="${currentCol}"]`); 
+                    if (target) { selectCell(target); clearCell(); } 
+                } 
+            } else { clearCell(); }
+            clearSelectionStyles();
+            if (selectedCell) selectCell(selectedCell);
+            saveState();
         }
 
-        function getCurrentSnapshot() { 
-            const data = { title: sheetTitle.textContent, selectedCellPos: selectedCell ? { row: selectedCell.dataset.row, col: selectedCell.dataset.col } : null, labels: [], rowColors: {}, cells: [] }; 
-            document.querySelectorAll('.row-label').forEach(label => { data.labels.push(label.textContent); }); 
-            document.querySelectorAll('.sheet-row').forEach(row => { if (row.style.color) { data.rowColors[row.dataset.rowIndex] = row.style.color; } }); 
-            document.querySelectorAll('.cell').forEach(cell => { if (cell.innerHTML.trim() !== '') { data.cells.push({ row: cell.dataset.row, col: cell.dataset.col, className: cell.className.replace('selected', '').replace('multi-selected', '').trim(), html: cell.innerHTML }); } }); 
-            return JSON.stringify(data); 
+        function applyRedToSelected() {
+            if (!selectedCell) return;
+            const applyRed = (cell) => {
+                if (cell.textContent.trim() !== '' || cell.children.length > 0) {
+                    cell.style.color = "#FF0000";
+                    cell.querySelectorAll('svg *').forEach(el => {
+                        if (el.getAttribute('fill') && el.getAttribute('fill') !== 'none') el.style.fill = "#FF0000";
+                        if (el.getAttribute('stroke') && el.getAttribute('stroke') !== 'none') el.style.stroke = "#FF0000";
+                    });
+                }
+            };
+            if (typeof selectedCellsList !== 'undefined' && selectedCellsList.length > 1) {
+                selectedCellsList.forEach(cell => applyRed(cell));
+            } else { applyRed(selectedCell); }
+            saveState();
         }
 
-        function applySnapshot(snapshotJSON) { 
-            try { 
-                const data = typeof snapshotJSON === 'string' ? JSON.parse(snapshotJSON) : snapshotJSON; 
-                if (data.title) sheetTitle.textContent = data.title; 
-                
-                document.querySelectorAll('.cell').forEach(cell => { cell.className = 'cell'; cell.innerHTML = ''; }); 
-                
-                if (data.labels) { 
-                    const labelDivs = document.querySelectorAll('.row-label'); 
-                    data.labels.forEach((text, i) => { if (labelDivs[i]) labelDivs[i].textContent = text; }); 
-                } 
+        // CONTROL DE ESTADO GLOBAL (SNAPSHOT & CONTROL Z)
+        function getCurrentSnapshot() {
+            saveCurrentPageToMemory(activePageIndex); 
+            return JSON.stringify({
+                title: docTitle,
+                pages: pagesData
+            });
+        }
 
-                document.querySelectorAll('.sheet-row').forEach(r => r.style.color = ''); 
-                if (data.rowColors) { 
-                    Object.keys(data.rowColors).forEach(rowIndex => { 
-                        const targetRow = document.querySelector(`.sheet-row[data-row-index="${rowIndex}"]`); 
-                        if (targetRow) targetRow.style.color = data.rowColors[rowIndex]; 
-                    }); 
-                } 
+        function saveState() {
+            const snapshot = getCurrentSnapshot();
+            if (undoStack.length === 0 || undoStack[undoStack.length - 1] !== snapshot) {
+                undoStack.push(snapshot);
+                if (undoStack.length > maxUndoSteps) undoStack.shift();
+            }
+            localStorage.setItem('sheetData_v10', snapshot);
+        }
 
-                if (data.cells) { 
-                    data.cells.forEach(cData => { 
-                        const cell = document.querySelector(`.cell[data-row="${cData.row}"][data-col="${cData.col}"]`); 
-                        if (cell) { 
-                            let rawClasses = cData.className.split(' ').filter(cls => cls !== 'cell' && cls !== 'selected' && cls !== 'multi-selected');
-                            let cellContent = cData.html;
-
-                            // 🎯 DETECTAR Y REEMPLAZAR CUALQUIER TEXTO DE FLECHA ANTIGUO POR SVG
-                            if (cellContent.includes('↑') || cellContent.trim() === '↑' || rawClasses.includes('is-arrow')) {
-                                cellContent = ARROW_UP_SVG;
-                                if (!rawClasses.includes('is-arrow')) rawClasses.push('is-arrow');
-                            }
-
-                            cell.className = 'cell ' + rawClasses.join(' '); 
-                            cell.innerHTML = cellContent; 
-                        } 
-                    }); 
-                } 
-
-                if (data.selectedCellPos) { 
-                    const targetCell = document.querySelector(`.cell[data-row="${data.selectedCellPos.row}"][data-col="${data.selectedCellPos.col}"]`); 
-                    if (targetCell) selectCell(targetCell); 
-                } 
-            } catch (e) { 
-                console.error("Error al aplicar estado:", e); 
-            } 
+        function applySnapshot(snapshotJSON) {
+            try {
+                const data = typeof snapshotJSON === 'string' ? JSON.parse(snapshotJSON) : snapshotJSON;
+                docTitle = data.title || docTitle;
+                pagesData = data.pages || [createEmptyPageObject()];
+            } catch(e) {
+                console.error("Error al aplicar snapshot:", e);
+            }
         }
 
         function undoState() { 
@@ -852,184 +953,196 @@
                 undoStack.pop(); 
                 const previousState = undoStack[undoStack.length - 1]; 
                 applySnapshot(previousState); 
-                localStorage.setItem('sheetData_v9', previousState); 
+                renderPagesUI();
+                loadPageFromMemory(activePageIndex < pagesData.length ? activePageIndex : 0);
+                localStorage.setItem('sheetData_v10', previousState); 
             } 
-        }
-
-        function saveState() { 
-            const snapshot = getCurrentSnapshot(); 
-            if (undoStack.length === 0 || undoStack[undoStack.length - 1] !== snapshot) { 
-                undoStack.push(snapshot); 
-                if (undoStack.length > maxUndoSteps) undoStack.shift(); 
-            } 
-            localStorage.setItem('sheetData_v9', snapshot); 
         }
 
         function loadState() { 
-            const saved = localStorage.getItem('sheetData_v9'); 
-            if (!saved) return; 
-            applySnapshot(saved); 
-            undoStack.push(saved); 
-        }
+    const saved = localStorage.getItem('sheetData_v10'); 
+    if (!saved) {
+        activePageIndex = 0;
+        renderPagesUI();
+        return;
+    }
+    
+    applySnapshot(saved); 
+    undoStack = [saved]; 
+    activePageIndex = 0;
+    
+    // Cargar Hoja 1 directamente
+    loadPageFromMemory(0);
+}
 
-        /* EXPORTAR PDF CON ESTADO CODIFICADO EN BASE64 */
-        function exportToPDF() { 
-            if (selectedCell) selectedCell.classList.remove('selected'); 
-            clearSelectionStyles(); 
-            
-            const paperElement = document.getElementById('sheetPaper');
-            const titleText = document.querySelector('.sheet-title').textContent; 
+        // PERSISTENCIA AUTOMÁTICA AL NAVEGAR O ACTUALIZAR
+        window.addEventListener('beforeunload', () => {
+    if (pagesData && pagesData.length > 0) {
+        saveCurrentPageToMemory(activePageIndex);
+        localStorage.setItem('sheetData_v10', getCurrentSnapshot());
+    }
+});
+        // EXPORTAR PDF MULTIPÁGINA
+        async function exportToPDF() { 
+    if (selectedCell) selectedCell.classList.remove('selected'); 
+    clearSelectionStyles(); 
+    
+    // Asegurarnos de que el título de la hoja activa actual esté en memoria
+    saveCurrentPageToMemory(activePageIndex);
 
-            const formattedTitle = titleText.trim()
-                .toLowerCase()
-                .split(/\s+/)
-                .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                .join(' ');
+    const paperElement = document.getElementById('sheetPaper');
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4', compress: true }); 
 
-            const fileName = formattedTitle || 'Gorrion';
+    const originalActivePage = activePageIndex;
 
-            html2canvas(paperElement, { 
-                scale: 2, 
-                backgroundColor: '#000000', 
-                useCORS: true, 
-                logging: false 
-            }).then(canvas => { 
-                const imgData = canvas.toDataURL('image/jpeg', 0.85);
-                const { jsPDF } = window.jspdf;
-                
-                const pdf = new jsPDF({ 
-                    orientation: 'landscape', 
-                    unit: 'mm', 
-                    format: 'a4',
-                    compress: true 
-                }); 
+    for (let i = 0; i < pagesData.length; i++) {
+        loadPageFromMemory(i);
+        await waitFrame(); 
 
-                const currentStateStr = getCurrentSnapshot();
-                
-                const encodedData = btoa(unescape(encodeURIComponent(currentStateStr)));
-
-                pdf.setProperties({
-                    title: titleText,
-                    subject: encodedData
-                });
-
-                const pdfWidth = pdf.internal.pageSize.getWidth();
-                const pdfHeight = pdf.internal.pageSize.getHeight();
-
-                const imgWidth = canvas.width;
-                const imgHeight = canvas.height;
-                const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
-
-                const renderWidth = imgWidth * ratio;
-                const renderHeight = imgHeight * ratio;
-
-                const xOffset = (pdfWidth - renderWidth) / 2;
-                const yOffset = (pdfHeight - renderHeight) / 2;
-
-                pdf.addImage(imgData, 'JPEG', xOffset, yOffset, renderWidth, renderHeight); 
-                
-                pdf.save(`${fileName}.pdf`); 
-
-                if (selectedCell) selectCell(selectedCell); 
-            }); 
-        }
-
-        /* IMPORTAR PDF DECODIFICANDO BASE64 */
-        async function importPDFWithMetadata(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            try {
-                const arrayBuffer = await file.arrayBuffer();
-                const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
-                const pdf = await loadingTask.promise;
-
-                let loadedState = null;
-
-                const metadata = await pdf.getMetadata();
-                
-                if (metadata && metadata.info && metadata.info.Subject) {
-                    try {
-                        const decodedStr = decodeURIComponent(escape(atob(metadata.info.Subject)));
-                        loadedState = JSON.parse(decodedStr);
-                    } catch(e) {
-                        console.warn("No se pudo decodificar Subject, probando alternativa...");
-                    }
-                }
-
-                if (!loadedState && metadata && metadata.info && metadata.info.Keywords) {
-                    try {
-                        loadedState = JSON.parse(metadata.info.Keywords);
-                    } catch(e) {}
-                }
-
-                if (loadedState) {
-                    applySnapshot(loadedState);
-                    saveState();
-                    alert(`Partitura "${loadedState.title || 'Cargada'}" importada con éxito.`);
-                } else {
-                    alert("Este PDF no contiene datos editables válidos.");
-                }
-            } catch (error) {
-                console.error("Error al cargar PDF:", error);
-                alert("Ocurrió un error al procesar el PDF.");
-            }
-            event.target.value = "";
-        }
-
-        loadState();
-        const firstCell = document.querySelector('.cell[data-row="0"][data-col="0"]');
-        if (firstCell && !selectedCell) selectCell(firstCell);
-
-        function handleDeleteButton() {
-            if (!selectedCell) return;
-            if (selectedCellsList.length > 1) {
-                clearSelectedRange();
-                return;
-            }
-            let currentRow = parseInt(selectedCell.dataset.row), currentCol = parseInt(selectedCell.dataset.col);
-            if (selectedCell.innerHTML === '') { 
-                if (currentCol > 0) { 
-                    currentCol--; 
-                    const target = document.querySelector(`.cell[data-row="${currentRow}"][data-col="${currentCol}"]`); 
-                    if (target) { 
-                        selectCell(target); 
-                        clearCell(); 
-                    } 
-                } 
-            } else { 
-                clearCell(); 
-            }
-            clearSelectionStyles();
-            if (selectedCell) selectCell(selectedCell);
-            saveState();
-        }
-        function applyRedToSelected() {
-    if (!selectedCell) return;
-
-    const applyRed = (cell) => {
-        // Verificar si la celda tiene contenido (texto o elementos SVG/HTML)
-        const hasContent = cell.textContent.trim() !== '' || cell.children.length > 0;
+        const canvas = await html2canvas(paperElement, { 
+            scale: 2, 
+            backgroundColor: '#000000', 
+            useCORS: true, 
+            logging: false 
+        });
         
-        // Solo aplica rojo SI LA CELDA TIENE ALGO ADENTRO
-        if (hasContent) {
-            cell.style.color = "#FF0000";
-            const svgs = cell.querySelectorAll('svg *');
-            svgs.forEach(el => {
-                if (el.getAttribute('fill') && el.getAttribute('fill') !== 'none') el.style.fill = "#FF0000";
-                if (el.getAttribute('stroke') && el.getAttribute('stroke') !== 'none') el.style.stroke = "#FF0000";
-            });
-        }
-    };
+        const imgData = canvas.toDataURL('image/jpeg', 0.85);
 
-    if (typeof selectedCellsList !== 'undefined' && selectedCellsList.length > 1) {
-        selectedCellsList.forEach(cell => applyRed(cell));
-    } else {
-        applyRed(selectedCell);
+        if (i > 0) pdf.addPage();
+
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = pdf.internal.pageSize.getHeight();
+        const ratio = Math.min(pdfWidth / canvas.width, pdfHeight / canvas.height);
+        const renderWidth = canvas.width * ratio;
+        const renderHeight = canvas.height * ratio;
+        const xOffset = (pdfWidth - renderWidth) / 2;
+        const yOffset = (pdfHeight - renderHeight) / 2;
+
+        pdf.addImage(imgData, 'JPEG', xOffset, yOffset, renderWidth, renderHeight);
     }
 
-    if (typeof saveState === 'function') saveState();
+    loadPageFromMemory(originalActivePage);
+
+    // Asegurar que docTitle tenga el nombre global si no se ha definido
+    if (!docTitle || docTitle === "") {
+        docTitle = pagesData[0]?.title || "GORRION";
+    }
+
+    const currentStateStr = JSON.stringify({
+        title: docTitle,
+        pages: pagesData
+    });
+    
+    const encodedData = btoa(unescape(encodeURIComponent(currentStateStr)));
+
+    pdf.setProperties({
+        title: docTitle,
+        subject: encodedData
+    });
+
+    const formattedTitle = docTitle.trim().toLowerCase().split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+    pdf.save(`${formattedTitle || 'Partitura'}.pdf`); 
+
+    if (selectedCell) selectCell(selectedCell); 
 }
+
+        // IMPORTAR PDF CON MULTIPÁGINA
+        async function importPDFWithMetadata(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    try {
+        const arrayBuffer = await file.arrayBuffer();
+        const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+        const pdf = await loadingTask.promise;
+
+        let loadedState = null;
+        const metadata = await pdf.getMetadata();
+        
+        if (metadata && metadata.info && metadata.info.Subject) {
+            try {
+                const decodedStr = decodeURIComponent(escape(atob(metadata.info.Subject)));
+                loadedState = JSON.parse(decodedStr);
+            } catch(e) {
+                console.warn("No se pudo decodificar Subject...");
+            }
+        }
+
+        if (!loadedState && metadata && metadata.info && metadata.info.Keywords) {
+            try { loadedState = JSON.parse(metadata.info.Keywords); } catch(e) {}
+        }
+
+        if (loadedState) {
+            docTitle = loadedState.title || docTitle;
+            pagesData = loadedState.pages || [];
+            activePageIndex = 0;
+
+            // Renderizamos la UI primero y luego cargamos la memoria directamente
+            renderPagesUI();
+            
+            // Carga limpia de la primera página sin guardar antes
+            const pageObj = pagesData[0] || createEmptyPageObject();
+            document.querySelectorAll('.cell').forEach(cell => { cell.className = 'cell'; cell.innerHTML = ''; cell.style.color = ''; });
+            const labelDivs = document.querySelectorAll('.row-label');
+            labelDivs.forEach((lDiv, i) => { lDiv.textContent = pageObj.labels[i] || ""; });
+
+            document.querySelectorAll('.sheet-row').forEach(r => r.style.color = '');
+            if (pageObj.rowColors) {
+                Object.keys(pageObj.rowColors).forEach(rowIndex => {
+                    const targetRow = document.querySelector(`.sheet-row[data-row-index="${rowIndex}"]`);
+                    if (targetRow) targetRow.style.color = pageObj.rowColors[rowIndex];
+                });
+            }
+
+            if (pageObj.cells) {
+                pageObj.cells.forEach(cData => {
+                    const cell = document.querySelector(`.cell[data-row="${cData.row}"][data-col="${cData.col}"]`);
+                    if (cell) {
+                        let rawClasses = cData.className.split(' ').filter(cls => cls !== 'cell' && cls !== 'selected' && cls !== 'multi-selected');
+                        let cellContent = cData.html;
+                        if (cellContent.includes('↑') || cellContent.trim() === '↑' || rawClasses.includes('is-arrow')) {
+                            cellContent = ARROW_UP_SVG;
+                            if (!rawClasses.includes('is-arrow')) rawClasses.push('is-arrow');
+                        }
+                        cell.className = 'cell ' + rawClasses.join(' ');
+                        cell.innerHTML = cellContent;
+                        if (cData.color) cell.style.color = cData.color;
+                    }
+                });
+            }
+
+            sheetTitle.textContent = pageObj.title || "";
+
+            const firstCell = document.querySelector('.cell[data-row="0"][data-col="0"]');
+            if (firstCell) selectCell(firstCell);
+
+            undoStack = [getCurrentSnapshot()];
+            localStorage.setItem('sheetData_v10', getCurrentSnapshot());
+
+            await showCustomAlert(`Partitura "${docTitle}" importada con éxito (${pagesData.length} hoja/s).`);
+        } else {
+            await showCustomAlert("Este PDF no contiene datos editables válidos.");
+        }
+    } catch (error) {
+        console.error("Error al cargar PDF:", error);
+        await showCustomAlert("Ocurrió un error al procesar el PDF.");
+    }
+    event.target.value = "";
+}
+
+        loadState();
     </script>
+
+    <div id="customConfirmModal" class="custom-modal-overlay">
+        <div class="custom-modal-box">
+            <p id="customConfirmMessage">¿Estás seguro?</p>
+            <div class="custom-modal-actions">
+                <button id="customConfirmBtnCancel" class="btn-modal-cancel">Cancelar</button>
+                <button id="customConfirmBtnOk" class="btn-modal-ok">Aceptar</button>
+            </div>
+        </div>
+    </div>
+
 </body>
 </html>
