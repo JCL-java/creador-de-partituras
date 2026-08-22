@@ -1,5 +1,5 @@
 {
-  "name": "Creador de Partituras Pro",
+  "name": "Creador de Partituras",
   "short_name": "Partituras",
   "start_url": "./index.html",
   "display": "standalone",
@@ -7,12 +7,12 @@
   "theme_color": "#0b0f19",
   "icons": [
     {
-      "src": "https://cdn-icons-png.flaticon.com/512/461/461238.png",
+      "src": "./logo.png",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "https://cdn-icons-png.flaticon.com/512/461/461238.png",
+      "src": "./logo.png",
       "sizes": "512x512",
       "type": "image/png"
     }
