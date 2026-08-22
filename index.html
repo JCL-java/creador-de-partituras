@@ -16,19 +16,33 @@
 
         /* --- BARRA LATERAL (SIDEBAR) --- */
         .sidebar { 
-            width: 360px; 
-            min-width: 360px; 
-            background-color: #111827; 
-            border-right: 1px solid #1f2937; 
-            padding: 22px; 
-            display: flex; 
-            flex-direction: column; 
-            gap: 22px; 
-            overflow-y: auto; 
-            z-index: 10; 
-        }
-        .sidebar h3 { font-size: 0.9rem; color: #6b7280; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
-        .palette-group { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+    width: 320px; /* Ensanchado a 320px para que entren las hojas */
+    min-width: 320px; 
+    max-width: 320px; 
+    background-color: #111827; 
+    border-right: 1px solid #1f2937; 
+    padding: 14px; 
+    display: flex; 
+    flex-direction: column; 
+    gap: 14px; 
+    overflow-y: auto; 
+    z-index: 10; 
+    box-sizing: border-box;
+}
+
+.sidebar h3 { 
+    font-size: 0.75rem; 
+    color: #6b7280; 
+    text-transform: uppercase; 
+    letter-spacing: 1px; 
+    margin-bottom: 8px; 
+}
+
+.palette-group { 
+    display: grid; 
+    grid-template-columns: repeat(4, 1fr); 
+    gap: 6px; /* Espaciado compacto entre botones */
+}
 
         /* --- NAVEGACIÓN DE HOJAS DE TRABAJO --- */
         .pages-control-container {
@@ -165,11 +179,22 @@
 
         /* --- BOTONES DE LA PALETA --- */
         .symbol-btn { 
-            background-color: #1f2937; color: #f3f4f6; border: 1px solid #374151; 
-            padding: 14px 6px; min-height: 52px; border-radius: 6px; font-weight: bold; 
-            font-size: 1.1rem; cursor: pointer; text-align: center; user-select: none; 
-            display: flex; align-items: center; justify-content: center; 
-        }
+    background-color: #1f2937; 
+    color: #f3f4f6; 
+    border: 1px solid #374151; 
+    padding: 6px 2px; /* Relleno ajustado */
+    height: 38px; /* Alto fijo rígido */
+    min-height: 38px;
+    border-radius: 6px; 
+    font-weight: bold; 
+    font-size: 0.95rem; 
+    cursor: pointer; 
+    text-align: center; 
+    user-select: none; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+}
         .symbol-btn:hover { background-color: #2563eb; border-color: #3b82f6; }
         .symbol-btn.btn-delete { background-color: #22106C !important; border-color: #311c8a !important; }
         .symbol-btn.btn-delete:hover { background-color: #2d168f !important; }
@@ -343,10 +368,9 @@
 
         <div>
             <h3>Color de Texto (Fila Activa)</h3>
-            <select id="textColorSelect" class="color-select" onchange="changeActiveRowTextColor(this.value)">
-                <option value="#FFFFFF">⚪ Blanco</option>
-                <option value="#28831A">🟢 Verde</option>
-            </select>
+            <button class="page-action-btn" style="background-color: #28831A; width: 100%; padding: 12px; font-size: 1rem;" onclick="toggleActiveRowColor()">
+                🟢 Fila Verde / Blanco
+            </button>
         </div>
 
         <div>
@@ -363,102 +387,130 @@
 
     <div class="main-content">
         <div class="paper" id="sheetPaper">
-            <div class="sheet-title" id="sheetTitle" contenteditable="true">GORRION 01</div>
+            <div class="sheet-title" id="sheetTitle" contenteditable="true"></div>
             <div class="rows-container" id="rowsContainer"></div>
         </div>
     </div>
 
     <script>
-        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+// --- CONFIGURACIÓN DE LIBRERÍAS DE TERCEROS ---
+// Define la ruta del proceso en segundo plano (worker) para procesar archivos PDF con PDF.js
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-        let selectedCell = null;
-        let selectionStart = null;
-        let isMouseDown = false;
-        let selectedCellsList = [];
-        let clipboardData = null; 
+// --- VARIABLES GLOBALES DE ESTADO Y SELECCIÓN ---
+let selectedCell = null;        // Almacena la celda (DOM Element) actualmente enfocada
+let selectionStart = null;      // Guarda las coordenadas {row, col} donde se inicia el arrastre del ratón
+let isMouseDown = false;        // Bandera (true/false) para saber si el botón del ratón está presionado
+let selectedCellsList = [];     // Lista de celdas seleccionadas cuando se hace una selección múltiple
+let clipboardData = null;       // Matriz con datos copiados temporalmente para funciones Cortar/Copiar/Pegar
 
-        let undoStack = [];
-        const maxUndoSteps = 50;
+// --- VARIABLES PARA EL CONTROL DE DESHACER (CONTROL + Z) ---
+let undoStack = [];             // Historial de capturas de la partitura
+const maxUndoSteps = 50;        // Límite máximo de pasos para la función deshacer
 
-        const defaultLabels = ["", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""];
-        const maxCols = 31;
-        const maxRows = 15;
+// --- CONFIGURACIÓN DE LA CUADRÍCULA ---
+const defaultLabels = ["", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""]; // Nombres iniciales de las filas
+const maxCols = 31;             // Total de columnas por fila (0 a 31 = 32 columnas)
+const maxRows = 15;             // Total de filas por hoja (0 a 15 = 16 filas)
 
-        // ESTRUCTURA DE PÁGINAS (MULTIHOSA)
-        let docTitle = "GORRION";
-        let activePageIndex = 0;
-        let pagesData = [ createEmptyPageObject() ];
+// --- ESTRUCTURA Y NAVEGACIÓN MULTIPÁGINA ---
+let docTitle = "GORRION";       // Título global predeterminado para el documento
+let activePageIndex = 0;        // Índice de la hoja actual visible en pantalla
+let pagesData = [ createEmptyPageObject() ]; // Colección que almacena la información de todas las hojas
 
-        const ARROW_UP_SVG = `<svg class="arrow-svg" viewBox="0 0 24 24"><line x1="12" y1="22" x2="12" y2="4" stroke-width="4" stroke-linecap="round"/><polyline points="5,11 12,4 19,11" fill="none" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+// SVG reutilizable para renderizar la flecha hacia arriba
+const ARROW_UP_SVG = `<svg class="arrow-svg" viewBox="0 0 24 24"><line x1="12" y1="22" x2="12" y2="4" stroke-width="4" stroke-linecap="round"/><polyline points="5,11 12,4 19,11" fill="none" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 
-        const rowsContainer = document.getElementById('rowsContainer');
-        const sheetTitle = document.getElementById('sheetTitle');
-        const colorSelect = document.getElementById('textColorSelect');
-        const pagesBar = document.getElementById('pagesBar');
+// --- REFERENCIAS AL DOM ---
+const rowsContainer = document.getElementById('rowsContainer'); // Contenedor principal de las filas en la hoja
+const sheetTitle = document.getElementById('sheetTitle');       // Elemento HTML con el título de la página
+const colorSelect = document.getElementById('textColorSelect');  // Selector/control de colores
+const pagesBar = document.getElementById('pagesBar');           // Barra contenedora de pestañas de hojas
 
-        function createEmptyPageObject() {
-            return { title: "", labels: [...defaultLabels], rowColors: {}, cells: [] };
-        }
+/**
+ * Genera la estructura de datos para una hoja en blanco.
+ * @returns {Object} Objeto con título, etiquetas, colores de fila y lista de celdas vacíos.
+ */
+function createEmptyPageObject() {
+    return { title: "", labels: [...defaultLabels], rowColors: {}, cells: [] };
+}
 
-        // Renderizar Cuadrícula Inicial
-        for (let i = 0; i <= maxRows; i++) { 
-            const row = document.createElement('div');
-            row.className = 'sheet-row';
-            row.dataset.rowIndex = i;
-            const label = document.createElement('div');
-            label.className = 'row-label';
-            label.contentEditable = "true";
-            label.dataset.rowIndex = i;
-            label.textContent = defaultLabels[i] || "";
-            label.addEventListener('input', saveState);
-            label.addEventListener('click', () => { const firstCell = row.querySelector('.cell'); if (firstCell) selectCell(firstCell); });
-            
-            row.appendChild(label);
-            const cellsContainer = document.createElement('div');
-            cellsContainer.className = 'row-cells';
-            for (let j = 0; j <= maxCols; j++) {
-                const cell = document.createElement('div');
-                cell.className = 'cell';
-                cell.dataset.row = i;
-                cell.dataset.col = j;
-                cell.addEventListener('mousedown', (e) => { 
-                    isMouseDown = true; 
-                    selectionStart = { row: parseInt(cell.dataset.row), col: parseInt(cell.dataset.col) }; 
-                    selectCell(cell);
-                });
-                cell.addEventListener('mouseenter', () => { 
-                    if (isMouseDown && selectionStart) { 
-                        const current = { row: parseInt(cell.dataset.row), col: parseInt(cell.dataset.col) }; 
-                        selectCellRange(selectionStart, current); 
-                    } 
-                });
-                cellsContainer.appendChild(cell);
-            }
-            row.appendChild(cellsContainer);
-            rowsContainer.appendChild(row);
-        }
+// --- CONSTRUCCIÓN INICIAL DEL LIENZO Y CUADRÍCULA ---
+// Genera dinámicamente el HTML de las 16 filas con sus 32 celdas cada una
+for (let i = 0; i <= maxRows; i++) { 
+    const row = document.createElement('div');
+    row.className = 'sheet-row';
+    row.dataset.rowIndex = i;
 
-        document.addEventListener('mouseup', () => { 
-            isMouseDown = false; 
-            if (selectedCellsList.length <= 1) { 
-                clearSelectionStyles(); 
-                if (selectedCell) selectedCell.classList.add('selected'); 
+    // Crear la etiqueta/nombre de la fila a la izquierda
+    const label = document.createElement('div');
+    label.className = 'row-label';
+    label.contentEditable = "true";
+    label.dataset.rowIndex = i;
+    label.textContent = defaultLabels[i] || "";
+    label.addEventListener('input', saveState);
+    label.addEventListener('click', () => { 
+        const firstCell = row.querySelector('.cell'); 
+        if (firstCell) selectCell(firstCell); 
+    });
+    
+    row.appendChild(label);
+
+    // Crear el contenedor de celdas cuadradas
+    const cellsContainer = document.createElement('div');
+    cellsContainer.className = 'row-cells';
+    for (let j = 0; j <= maxCols; j++) {
+        const cell = document.createElement('div');
+        cell.className = 'cell';
+        cell.dataset.row = i;
+        cell.dataset.col = j;
+
+        // Escuchadores para la selección por arrastre (clic y mover el cursor)
+        cell.addEventListener('mousedown', (e) => { 
+            isMouseDown = true; 
+            selectionStart = { row: parseInt(cell.dataset.row), col: parseInt(cell.dataset.col) }; 
+            selectCell(cell);
+        });
+        cell.addEventListener('mouseenter', () => { 
+            if (isMouseDown && selectionStart) { 
+                const current = { row: parseInt(cell.dataset.row), col: parseInt(cell.dataset.col) }; 
+                selectCellRange(selectionStart, current); 
             } 
         });
+        cellsContainer.appendChild(cell);
+    }
+    row.appendChild(cellsContainer);
+    rowsContainer.appendChild(row);
+}
 
-        sheetTitle.addEventListener('input', () => {
-            const fullText = sheetTitle.textContent.trim();
-            if (pagesData[activePageIndex]) {
-                pagesData[activePageIndex].title = fullText;
-            }
-            const match = fullText.match(/^(.*?)(?:\s+\d+)?$/);
-            if (match && match[1].trim() !== "") {
-                docTitle = match[1].trim();
-            }
-            saveState();
-        });
+// Evento global para soltar el clic del ratón y finalizar la selección múltiple
+document.addEventListener('mouseup', () => { 
+    isMouseDown = false; 
+    if (selectedCellsList.length <= 1) { 
+        clearSelectionStyles(); 
+        if (selectedCell) selectedCell.classList.add('selected'); 
+    } 
+});
 
-        function showCustomConfirm(message) {
+// Evento que sincroniza el título ingresado en el lienzo con los datos globales
+sheetTitle.addEventListener('input', () => {
+    const fullText = sheetTitle.textContent.trim();
+    if (pagesData[activePageIndex]) {
+        pagesData[activePageIndex].title = fullText;
+    }
+    const match = fullText.match(/^(.*?)(?:\s+\d+)?$/);
+    if (match && match[1].trim() !== "") {
+        docTitle = match[1].trim();
+    }
+    saveState();
+});
+
+/**
+ * Muestra una ventana modal personalizada para confirmar una acción (Ej: Eliminar).
+ * @param {string} message - El mensaje que se mostrará al usuario.
+ * @returns {Promise<boolean>} Devuelve true si el usuario presiona Aceptar, false si Cancelar.
+ */
+function showCustomConfirm(message) {
     return new Promise((resolve) => {
         const modal = document.getElementById('customConfirmModal');
         const msgEl = document.getElementById('customConfirmMessage');
@@ -469,7 +521,6 @@
         btnCancel.style.display = 'inline-block';
         modal.classList.add('active');
 
-        // Enfocar el botón Aceptar para responder al Enter directamente
         setTimeout(() => btnOk.focus(), 50);
 
         const cleanup = () => {
@@ -483,13 +534,8 @@
         const handleCancel = () => { cleanup(); resolve(false); };
 
         const handleKeyDown = (e) => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                handleOk();
-            } else if (e.key === 'Escape') {
-                e.preventDefault();
-                handleCancel();
-            }
+            if (e.key === 'Enter') { e.preventDefault(); handleOk(); }
+            else if (e.key === 'Escape') { e.preventDefault(); handleCancel(); }
         };
 
         btnOk.addEventListener('click', handleOk);
@@ -498,32 +544,41 @@
     });
 }
 
-        // NAVEGACIÓN Y GESTIÓN DE PÁGINAS
-        function renderPagesUI() {
-            pagesBar.innerHTML = '';
-            pagesData.forEach((_, idx) => {
-                const btn = document.createElement('button');
-                btn.className = `page-tab-btn ${idx === activePageIndex ? 'active' : ''}`;
-                btn.textContent = `Hoja ${idx + 1}`;
-                btn.onclick = () => switchPage(idx);
-                pagesBar.appendChild(btn);
-            });
-            updateHeaderTitle();
-        }
+// --- GESTIÓN Y RENDERING DE HAPAS/PÁGINAS ---
 
-        function updateHeaderTitle() {
+/**
+ * Vuelve a dibujar los botones de las hojas ("Hoja 1", "Hoja 2", etc.) en el panel lateral.
+ */
+function renderPagesUI() {
+    pagesBar.innerHTML = '';
+    pagesData.forEach((_, idx) => {
+        const btn = document.createElement('button');
+        btn.className = `page-tab-btn ${idx === activePageIndex ? 'active' : ''}`;
+        btn.textContent = `Hoja ${idx + 1}`;
+        btn.onclick = () => switchPage(idx);
+        pagesBar.appendChild(btn);
+    });
+    updateHeaderTitle();
+}
+
+/**
+ * Actualiza el encabezado del lienzo con el título de la hoja activa.
+ */
+function updateHeaderTitle() {
     const pageObj = pagesData[activePageIndex];
     if (pageObj) {
         sheetTitle.textContent = pageObj.title || "";
     }
 }
 
-       function saveCurrentPageToMemory(pageIndex = activePageIndex) {
+/**
+ * Guarda los elementos visuales del DOM de la hoja actual en el objeto JavaScript pagesData.
+ * @param {number} pageIndex - Índice de la página a guardar.
+ */
+function saveCurrentPageToMemory(pageIndex = activePageIndex) {
     if (!pagesData[pageIndex]) return;
     
-    // Si intentamos guardar la página activa pero el HTML tiene la clase de cambio, abortamos
     pagesData[pageIndex].title = sheetTitle.textContent.trim();
-    
     pagesData[pageIndex].labels = [];
     pagesData[pageIndex].rowColors = {};
     pagesData[pageIndex].cells = [];
@@ -546,14 +601,18 @@
     });
 }
 
-        const waitFrame = () => new Promise(resolve => setTimeout(resolve, 150));
+const waitFrame = () => new Promise(resolve => setTimeout(resolve, 150));
 
-        function loadPageFromMemory(index) {
+/**
+ * Lee la memoria y dibuja en el lienzo HTML el contenido correspondiente al índice indicado.
+ * @param {number} index - Índice de la página que se desea mostrar.
+ */
+function loadPageFromMemory(index) {
     if (!pagesData[index]) return;
     
     activePageIndex = index;
 
-    // 1. Limpiar pantalla por completo antes de renderizar
+    // Limpiar pantalla antes de renderizar
     sheetTitle.textContent = "";
     document.querySelectorAll('.cell').forEach(cell => { 
         cell.className = 'cell'; 
@@ -564,14 +623,12 @@
 
     const pageObj = pagesData[index];
 
-    // 2. Cargar Título
+    // Cargar título y nombres de filas
     sheetTitle.textContent = pageObj.title || "";
-
-    // 3. Cargar Labels de filas
     const labelDivs = document.querySelectorAll('.row-label');
     labelDivs.forEach((lDiv, i) => { lDiv.textContent = pageObj.labels[i] || ""; });
 
-    // 4. Cargar Colores de filas
+    // Cargar colores asignados a las filas
     if (pageObj.rowColors) {
         Object.keys(pageObj.rowColors).forEach(rowIndex => {
             const targetRow = document.querySelector(`.sheet-row[data-row-index="${rowIndex}"]`);
@@ -579,7 +636,7 @@
         });
     }
 
-    // 5. Cargar Celdas
+    // Restaurar los acordes/símbolos de cada celda
     if (pageObj.cells) {
         pageObj.cells.forEach(cData => {
             const cell = document.querySelector(`.cell[data-row="${cData.row}"][data-col="${cData.col}"]`);
@@ -597,28 +654,38 @@
         });
     }
 
-    // 6. Resaltar botón activo en el menú lateral
     renderPagesUI();
 }
 
-        function switchPage(index) {
-            if (index === activePageIndex) return;
-            loadPageFromMemory(index);
-            saveState();
-        }
-
-        function addNewPage() {
-            saveCurrentPageToMemory();
-            pagesData.push(createEmptyPageObject());
-            loadPageFromMemory(pagesData.length - 1);
-            saveState();
-        }
-
-        async function deleteCurrentPage() {
-   if (pagesData.length <= 1) {
-    await showCustomAlert("Debe haber al menos una hoja de trabajo.");
-    return;
+/**
+ * Cambia la vista de una hoja a otra guardando primero la actual.
+ * @param {number} index - Índice de la nueva hoja de destino.
+ */
+function switchPage(index) {
+    if (index === activePageIndex) return;
+    saveCurrentPageToMemory(activePageIndex);
+    loadPageFromMemory(index);
+    saveState();
 }
+
+/**
+ * Agrega una nueva hoja vacía al final del documento y cambia hacia ella.
+ */
+function addNewPage() {
+    saveCurrentPageToMemory();
+    pagesData.push(createEmptyPageObject());
+    loadPageFromMemory(pagesData.length - 1);
+    saveState();
+}
+
+/**
+ * Elimina la hoja que se está visualizando actualmente tras pedir confirmación.
+ */
+async function deleteCurrentPage() {
+    if (pagesData.length <= 1) {
+        await showCustomAlert("Debe haber al menos una hoja de trabajo.");
+        return;
+    }
     
     const confirmed = await showCustomConfirm(`¿Eliminar la Hoja ${activePageIndex + 1}?`);
     if (confirmed) {
@@ -631,218 +698,312 @@
     }
 }
 
-        // LÓGICA DE SELECCIÓN Y EDICIÓN DE CELDAS
-        function selectCellRange(start, end) {
-            clearSelectionStyles();
-            const minRow = Math.min(start.row, end.row), maxRow = Math.max(start.row, end.row), minCol = Math.min(start.col, end.col), maxCol = Math.max(start.col, end.col);
-            selectedCellsList = [];
-            for (let r = minRow; r <= maxRow; r++) { 
-                for (let c = minCol; c <= maxCol; c++) { 
-                    const cell = document.querySelector(`.cell[data-row="${r}"][data-col="${c}"]`); 
-                    if (cell) { 
-                        cell.classList.add('multi-selected'); 
-                        selectedCellsList.push(cell); 
-                    } 
-                } 
-            }
-            const activeCell = document.querySelector(`.cell[data-row="${start.row}"][data-col="${start.col}"]`);
-            if (activeCell) { 
-                if (selectedCell) selectedCell.classList.remove('selected'); 
-                selectedCell = activeCell; 
-                selectedCell.classList.add('selected'); 
-            }
-        }
+// --- MANEJO DE SELECCIÓN Y CELDAS ---
 
-        function clearSelectionStyles() { document.querySelectorAll('.cell.multi-selected').forEach(c => c.classList.remove('multi-selected')); }
-
-        function selectCell(cell) {
-            clearSelectionStyles();
-            if (selectedCell) selectedCell.classList.remove('selected');
-            selectedCell = cell;
-            selectedCell.classList.add('selected');
-            selectedCellsList = [cell];
-            const row = selectedCell.closest('.sheet-row');
-            if (row) { 
-                const computedColor = window.getComputedStyle(row).color; 
-                if (computedColor.includes('40, 131, 26') || row.style.color === '#28831A') colorSelect.value = '#28831A'; 
-                else colorSelect.value = '#FFFFFF'; 
-            }
-        }
-
-        function changeActiveRowTextColor(colorHex) { 
-            if (!selectedCell) return; 
-            const targetRow = selectedCell.closest('.sheet-row'); 
-            if (targetRow) { 
-                targetRow.style.color = colorHex; 
-                const fixedRedClasses = ['is-arrow', 'is-left-arrow-container', 'is-power', 'is-pause', 'is-slash', 'is-quarter-note'];
-                targetRow.querySelectorAll('.cell').forEach(cell => {
-                    if (!fixedRedClasses.some(cls => cell.classList.contains(cls))) {
-                        cell.style.color = ''; 
-                        cell.querySelectorAll('svg *').forEach(el => { el.style.fill = ''; el.style.stroke = ''; });
-                    }
-                });
-                saveState(); 
+/**
+ * Selecciona una región rectangular de celdas al arrastrar el ratón.
+ */
+function selectCellRange(start, end) {
+    clearSelectionStyles();
+    const minRow = Math.min(start.row, end.row), maxRow = Math.max(start.row, end.row);
+    const minCol = Math.min(start.col, end.col), maxCol = Math.max(start.col, end.col);
+    
+    selectedCellsList = [];
+    for (let r = minRow; r <= maxRow; r++) { 
+        for (let c = minCol; c <= maxCol; c++) { 
+            const cell = document.querySelector(`.cell[data-row="${r}"][data-col="${c}"]`); 
+            if (cell) { 
+                cell.classList.add('multi-selected'); 
+                selectedCellsList.push(cell); 
             } 
+        } 
+    }
+    const activeCell = document.querySelector(`.cell[data-row="${start.row}"][data-col="${start.col}"]`);
+    if (activeCell) { 
+        if (selectedCell) selectedCell.classList.remove('selected'); 
+        selectedCell = activeCell; 
+        selectedCell.classList.add('selected'); 
+    }
+}
+
+/**
+ * Remueve el resaltado azul de selección múltiple en todas las celdas.
+ */
+function clearSelectionStyles() { 
+    document.querySelectorAll('.cell.multi-selected').forEach(c => c.classList.remove('multi-selected')); 
+}
+
+/**
+ * Marca una celda individual como la celda seleccionada activa.
+ * @param {HTMLElement} cell - Elemento HTML correspondiente a la celda.
+ */
+function selectCell(cell) {
+    clearSelectionStyles();
+    if (selectedCell) selectedCell.classList.remove('selected');
+    selectedCell = cell;
+    selectedCell.classList.add('selected');
+    selectedCellsList = [cell];
+    
+    if (colorSelect) {
+        const row = selectedCell.closest('.sheet-row');
+        if (row) { 
+            const computedColor = window.getComputedStyle(row).color; 
+            if (computedColor.includes('40, 131, 26') || row.style.color === '#28831A') colorSelect.value = '#28831A'; 
+            else colorSelect.value = '#FFFFFF'; 
         }
+    }
+}
 
-        document.addEventListener('keydown', (e) => {
-            if (document.activeElement && document.activeElement.isContentEditable) return;
-            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); undoState(); return; }
-            if (!selectedCell) return;
+/**
+ * Alterna el color del texto de toda la fila activa entre Verde (#28831A) y Blanco (#FFFFFF) mediante el botón[cite: 1].
+ */
+function toggleActiveRowColor() {
+    if (!selectedCell) {
+        showCustomAlert("Selecciona una celda en la fila primero.");
+        return;
+    }
 
-            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'c') { e.preventDefault(); copySelectedRange(); clearSelectionStyles(); if (selectedCell) selectedCell.classList.add('selected'); return; }
-            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'x') { e.preventDefault(); cutSelectedRange(); return; }
-            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'v') { e.preventDefault(); pasteSelectedRange(); return; }
-            
-            if (selectedCell.classList.contains('is-left-arrow-container') && /^[0-9]$/.test(e.key)) { 
-                e.preventDefault(); 
-                let subNum = selectedCell.querySelector('.arrow-subnum'); 
-                if (!subNum) { subNum = document.createElement('span'); subNum.className = 'arrow-subnum'; selectedCell.appendChild(subNum); } 
-                subNum.textContent = e.key; 
-                saveState(); 
-                return; 
-            }
+    const targetRow = selectedCell.closest('.sheet-row');
+    if (!targetRow) return;
 
-            let currentRow = parseInt(selectedCell.dataset.row), currentCol = parseInt(selectedCell.dataset.col), moved = false;
-            
-            if (e.key === 'Backspace') { e.preventDefault(); handleDeleteButton(); return; }
-            else if (e.key === 'Delete') { e.preventDefault(); if (selectedCellsList.length > 1) clearSelectedRange(); else clearCell(); return; }
-            
-            if (e.key === ' ' || e.code === 'Space') { e.preventDefault(); if (currentCol < maxCols) currentCol++; moved = true; }
-            else if (e.key === 'ArrowRight') { e.preventDefault(); if (currentCol < maxCols) currentCol++; moved = true; }
-            else if (e.key === 'ArrowLeft') { e.preventDefault(); if (currentCol > 0) currentCol--; moved = true; }
-            else if (e.key === 'ArrowDown') { e.preventDefault(); if (currentRow < maxRows) currentRow++; moved = true; }
-            else if (e.key === 'ArrowUp') { e.preventDefault(); if (currentRow > 0) currentRow--; moved = true; }
-            else if (e.key === 'Enter') { e.preventDefault(); if (currentRow < maxRows) { currentRow++; currentCol = 0; } moved = true; }
-            
-            if (moved) { 
-                const nextTarget = document.querySelector(`.cell[data-row="${currentRow}"][data-col="${currentCol}"]`); 
-                if (nextTarget) selectCell(nextTarget); 
-            }
-        });
+    // Detectar el color actual
+    const computedColor = window.getComputedStyle(targetRow).color;
+    const isGreen = computedColor.includes('40, 131, 26') || targetRow.style.color === '#28831A' || targetRow.style.color === 'rgb(40, 131, 26)';
 
-        function copySelectedRange() {
-            if (!selectedCellsList.length) return;
-            let minRow = Infinity, maxRow = -Infinity, minCol = Infinity, maxCol = -Infinity;
-            selectedCellsList.forEach(c => { const r = parseInt(c.dataset.row), col = parseInt(c.dataset.col); if (r < minRow) minRow = r; if (r > maxRow) maxRow = r; if (col < minCol) minCol = col; if (col > maxCol) maxCol = col; });
-            const matrix = [];
-            for (let r = minRow; r <= maxRow; r++) { const rowArray = []; for (let c = minCol; c <= maxCol; c++) { const cell = document.querySelector(`.cell[data-row="${r}"][data-col="${c}"]`); if (cell) { const cleanClass = cell.className.replace('multi-selected', '').replace('selected', '').trim(); rowArray.push({ className: cleanClass === '' ? 'cell' : cleanClass, html: cell.innerHTML }); } } matrix.push(rowArray); }
-            clipboardData = matrix;
+    // Cambiar el color
+    const newColor = isGreen ? '#FFFFFF' : '#28831A';
+    targetRow.style.color = newColor;
+
+    // Mantener los símbolos de color rojo fijo sin sobreescribirlos
+    const fixedRedClasses = ['is-arrow', 'is-left-arrow-container', 'is-power', 'is-pause', 'is-slash', 'is-quarter-note'];
+    targetRow.querySelectorAll('.cell').forEach(cell => {
+        if (!fixedRedClasses.some(cls => cell.classList.contains(cls))) {
+            cell.style.color = ''; 
+            cell.querySelectorAll('svg *').forEach(el => { el.style.fill = ''; el.style.stroke = ''; });
         }
+    });
 
-        function cutSelectedRange() {
-            if (!selectedCellsList.length && !selectedCell) return;
-            copySelectedRange();
-            if (selectedCellsList.length > 1) clearSelectedRange(); else clearCell();
-        }
+    saveState();
+}
 
-        function clearSelectedRange() { 
-            selectedCellsList.forEach(cell => { cell.className = 'cell'; cell.innerHTML = ''; cell.style.color = ''; }); 
-            clearSelectionStyles(); 
-            if (selectedCell) selectCell(selectedCell); 
-            saveState(); 
-        }
+// --- NAVEGACIÓN Y ATAJOS POR TECLADO ---
+document.addEventListener('keydown', (e) => {
+    if (document.activeElement && document.activeElement.isContentEditable) return;
+    
+    // Control + Z (Deshacer)
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); undoState(); return; }
+    if (!selectedCell) return;
 
-        function pasteSelectedRange() { 
-            if (!clipboardData || !selectedCell) return; 
-            const startRow = parseInt(selectedCell.dataset.row), startCol = parseInt(selectedCell.dataset.col), numRows = clipboardData.length, numCols = clipboardData[0].length; 
-            for (let r = 0; r < numRows; r++) { 
-                for (let c = 0; c < numCols; c++) { 
-                    const targetRow = startRow + r, targetCol = startCol + c; 
-                    if (targetRow <= maxRows && targetCol <= maxCols) { 
-                        const targetCell = document.querySelector(`.cell[data-row="${targetRow}"][data-col="${targetCol}"]`); 
-                        if (targetCell) { 
-                            const source = clipboardData[r][c]; 
-                            targetCell.className = source.className; 
-                            targetCell.innerHTML = source.html; 
-                        } 
-                    } 
+    // Copiar, Cortar y Pegar
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'c') { e.preventDefault(); copySelectedRange(); clearSelectionStyles(); if (selectedCell) selectedCell.classList.add('selected'); return; }
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'x') { e.preventDefault(); cutSelectedRange(); return; }
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'v') { e.preventDefault(); pasteSelectedRange(); return; }
+    
+    // Asignación de subíndice numérico para la flecha izquierda
+    if (selectedCell.classList.contains('is-left-arrow-container') && /^[0-9]$/.test(e.key)) { 
+        e.preventDefault(); 
+        let subNum = selectedCell.querySelector('.arrow-subnum'); 
+        if (!subNum) { subNum = document.createElement('span'); subNum.className = 'arrow-subnum'; selectedCell.appendChild(subNum); } 
+        subNum.textContent = e.key; 
+        saveState(); 
+        return; 
+    }
+
+    let currentRow = parseInt(selectedCell.dataset.row);
+    let currentCol = parseInt(selectedCell.dataset.col);
+    let moved = false;
+    
+    // Teclas de borrado
+    if (e.key === 'Backspace') { e.preventDefault(); handleDeleteButton(); return; }
+    else if (e.key === 'Delete') { e.preventDefault(); if (selectedCellsList.length > 1) clearSelectedRange(); else clearCell(); return; }
+    
+    // Flechas del teclado y desplazamiento (Espacio/Enter)
+    if (e.key === ' ' || e.code === 'Space') { e.preventDefault(); if (currentCol < maxCols) currentCol++; moved = true; }
+    else if (e.key === 'ArrowRight') { e.preventDefault(); if (currentCol < maxCols) currentCol++; moved = true; }
+    else if (e.key === 'ArrowLeft') { e.preventDefault(); if (currentCol > 0) currentCol--; moved = true; }
+    else if (e.key === 'ArrowDown') { e.preventDefault(); if (currentRow < maxRows) currentRow++; moved = true; }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); if (currentRow > 0) currentRow--; moved = true; }
+    else if (e.key === 'Enter') { e.preventDefault(); if (currentRow < maxRows) { currentRow++; currentCol = 0; } moved = true; }
+    
+    if (moved) { 
+        const nextTarget = document.querySelector(`.cell[data-row="${currentRow}"][data-col="${currentCol}"]`); 
+        if (nextTarget) selectCell(nextTarget); 
+    }
+});
+
+// --- FUNCIONALIDADES DE PORTAPAPELES ---
+
+/**
+ * Copia la información HTML y CSS del rango de celdas seleccionado en el portapapeles en memoria.
+ */
+function copySelectedRange() {
+    if (!selectedCellsList.length) return;
+    let minRow = Infinity, maxRow = -Infinity, minCol = Infinity, maxCol = -Infinity;
+    selectedCellsList.forEach(c => { 
+        const r = parseInt(c.dataset.row), col = parseInt(c.dataset.col); 
+        if (r < minRow) minRow = r; if (r > maxRow) maxRow = r; 
+        if (col < minCol) minCol = col; if (col > maxCol) maxCol = col; 
+    });
+    const matrix = [];
+    for (let r = minRow; r <= maxRow; r++) { 
+        const rowArray = []; 
+        for (let c = minCol; c <= maxCol; c++) { 
+            const cell = document.querySelector(`.cell[data-row="${r}"][data-col="${c}"]`); 
+            if (cell) { 
+                const cleanClass = cell.className.replace('multi-selected', '').replace('selected', '').trim(); 
+                rowArray.push({ className: cleanClass === '' ? 'cell' : cleanClass, html: cell.innerHTML }); 
+            } 
+        } 
+        matrix.push(rowArray); 
+    }
+    clipboardData = matrix;
+}
+
+/**
+ * Corta la información del rango actual vaciando las celdas de origen.
+ */
+function cutSelectedRange() {
+    if (!selectedCellsList.length && !selectedCell) return;
+    copySelectedRange();
+    if (selectedCellsList.length > 1) clearSelectedRange(); else clearCell();
+}
+
+/**
+ * Borra el contenido de todas las celdas resaltadas en la selección múltiple.
+ */
+function clearSelectedRange() { 
+    selectedCellsList.forEach(cell => { cell.className = 'cell'; cell.innerHTML = ''; cell.style.color = ''; }); 
+    clearSelectionStyles(); 
+    if (selectedCell) selectCell(selectedCell); 
+    saveState(); 
+}
+
+/**
+ * Pega el rango copiado previamente a partir de la celda enfocado.
+ */
+function pasteSelectedRange() { 
+    if (!clipboardData || !selectedCell) return; 
+    const startRow = parseInt(selectedCell.dataset.row);
+    const startCol = parseInt(selectedCell.dataset.col);
+    const numRows = clipboardData.length;
+    const numCols = clipboardData[0].length; 
+    
+    for (let r = 0; r < numRows; r++) { 
+        for (let c = 0; c < numCols; c++) { 
+            const targetRow = startRow + r, targetCol = startCol + c; 
+            if (targetRow <= maxRows && targetCol <= maxCols) { 
+                const targetCell = document.querySelector(`.cell[data-row="${targetRow}"][data-col="${targetCol}"]`); 
+                if (targetCell) { 
+                    const source = clipboardData[r][c]; 
+                    targetCell.className = source.className; 
+                    targetCell.innerHTML = source.html; 
                 } 
             } 
-            clearSelectionStyles(); 
-            selectCell(selectedCell); 
-            saveState(); 
-        }
+        } 
+    } 
+    clearSelectionStyles(); 
+    selectCell(selectedCell); 
+    saveState(); 
+}
 
-        function insertSpecial(type) {
-            if (!selectedCell) return;
-            selectedCell.className = 'cell selected';
-            if (type === 'only-start-bracket') { 
-                selectedCell.innerHTML = `<svg width="14" height="38" viewBox="0 0 14 38" fill="none"><path d="M12 2H2V36H12" stroke="currentColor" stroke-width="3.5" stroke-linecap="square" stroke-linejoin="miter"/></svg>`; 
-                selectedCell.classList.add('is-only-start-bracket'); 
-            } else if (type === 'only-end-bracket') { 
-                selectedCell.innerHTML = `<svg width="14" height="38" viewBox="0 0 14 38" fill="none"><path d="M2 2H12V36H2" stroke="currentColor" stroke-width="3.5" stroke-linecap="square" stroke-linejoin="miter"/></svg>`; 
-                selectedCell.classList.add('is-only-end-bracket'); 
-            }
-            saveState(); 
-            moveToNext();
-        }
+// --- INSERTAR SÍMBOLOS Y ACORDES ---
 
-        function insertSymbol(symbol, isPower = false) {
-            if (!selectedCell) return;
-            selectedCell.className = 'cell selected';
-            if (isPower) {
-                selectedCell.innerHTML = `<span class="power-num">${symbol}</span>`;
-                selectedCell.classList.add('is-power');
-            } else if (symbol === '%') {
-                selectedCell.innerHTML = `<svg class="repeat-svg" width="30" height="30" viewBox="0 0 24 24"><circle cx="6.5" cy="7.5" r="3.5" fill="currentColor"/><circle cx="17.5" cy="16.5" r="3.5" fill="currentColor"/><line x1="4" y1="21" x2="20" y2="3" stroke-width="4" stroke-linecap="round"/></svg>`;
-                selectedCell.classList.add('is-repeat');
-            } else if (symbol === 'pausa') {
-                selectedCell.innerHTML = `<svg class="pause-svg" width="46" height="32" viewBox="0 0 100 70"><path fill="#FF0000" fill-rule="evenodd" d="M 50 0 C 77.6 0 100 15.7 100 35 C 100 54.3 77.6 70 50 70 C 22.4 70 0 54.3 0 35 C 0 15.7 22.4 0 50 0 Z M 50 11 C 41.5 11 36 21 36 35 C 36 49 41.5 59 50 59 C 58.5 59 64 49 64 35 C 64 21 58.5 11 50 11 Z" transform="rotate(-18 50 35)"/></svg>`;
-                selectedCell.classList.add('is-pause');
-            } else if (symbol === '↑') {
-                selectedCell.innerHTML = ARROW_UP_SVG;
-                selectedCell.classList.add('is-arrow');
-            } else if (symbol === 'negra') {
-                selectedCell.innerHTML = `<svg width="32" height="32" viewBox="0 0 24 24"><circle cx="9" cy="17" r="5" fill="#FF0000" style="fill: #FF0000 !important;"/><line x1="13.5" y1="17" x2="13.5" y2="3" stroke="#FF0000" stroke-width="3.5" stroke-linecap="round"/></svg>`;
-                selectedCell.classList.add('is-quarter-note');
-            } else if (symbol === '←') {
-                selectedCell.innerHTML = `<svg class="arrow-svg" width="28" height="24" viewBox="0 0 24 24"><line x1="20" y1="12" x2="4" y2="12" stroke-width="4" stroke-linecap="round"/><polyline points="11,5 4,12 11,19" fill="none" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="arrow-subnum"></span>`;
-                selectedCell.classList.add('is-left-arrow-container');
-            } else {
-                selectedCell.textContent = symbol;
-                if (symbol.length >= 3) selectedCell.classList.add('is-long-chord');
-                if (symbol === '|') selectedCell.classList.add('is-bar');
-                if (symbol === '/') selectedCell.classList.add('is-slash');
-            }
-            if (symbol !== '←') moveToNext();
-            saveState();
-        }
+/**
+ * Inserta corchetes especiales en la celda activa.
+ * @param {string} type - 'only-start-bracket' o 'only-end-bracket'
+ */
+function insertSpecial(type) {
+    if (!selectedCell) return;
+    selectedCell.className = 'cell selected';
+    if (type === 'only-start-bracket') { 
+        selectedCell.innerHTML = `<svg width="14" height="38" viewBox="0 0 14 38" fill="none"><path d="M12 2H2V36H12" stroke="currentColor" stroke-width="3.5" stroke-linecap="square" stroke-linejoin="miter"/></svg>`; 
+        selectedCell.classList.add('is-only-start-bracket'); 
+    } else if (type === 'only-end-bracket') { 
+        selectedCell.innerHTML = `<svg width="14" height="38" viewBox="0 0 14 38" fill="none"><path d="M2 2H12V36H2" stroke="currentColor" stroke-width="3.5" stroke-linecap="square" stroke-linejoin="miter"/></svg>`; 
+        selectedCell.classList.add('is-only-end-bracket'); 
+    }
+    saveState(); 
+    moveToNext();
+}
 
-        function insertRepeatBar() {
-            if (!selectedCell) return;
-            selectedCell.className = 'cell selected';
-            selectedCell.innerHTML = `<svg class="repeat-svg" width="30" height="30" viewBox="0 0 24 24"><circle cx="6.5" cy="7.5" r="3.5" fill="currentColor"/><circle cx="17.5" cy="16.5" r="3.5" fill="currentColor"/><line x1="4" y1="21" x2="20" y2="3" stroke-width="4" stroke-linecap="round"/></svg>`;
-            selectedCell.classList.add('is-repeat');
-            
-            const nextCell = selectedCell.nextElementSibling;
-            if (nextCell) {
-                selectCell(nextCell);
-                selectedCell.className = 'cell selected';
-                selectedCell.textContent = '|';
-                selectedCell.classList.add('is-bar');
-                moveToNext();
-            }
-            saveState();
-        }
+/**
+ * Inserta texto de acordes o elementos SVG (flechas, pausas, notas) en la celda activa.
+ * @param {string} symbol - Texto o identificador del símbolo.
+ * @param {boolean} isPower - Bandera si es un superíndice (ej: x2, x3).
+ */
+function insertSymbol(symbol, isPower = false) {
+    if (!selectedCell) return;
+    selectedCell.className = 'cell selected';
+    if (isPower) {
+        selectedCell.innerHTML = `<span class="power-num">${symbol}</span>`;
+        selectedCell.classList.add('is-power');
+    } else if (symbol === '%') {
+        selectedCell.innerHTML = `<svg class="repeat-svg" width="30" height="30" viewBox="0 0 24 24"><circle cx="6.5" cy="7.5" r="3.5" fill="currentColor"/><circle cx="17.5" cy="16.5" r="3.5" fill="currentColor"/><line x1="4" y1="21" x2="20" y2="3" stroke-width="4" stroke-linecap="round"/></svg>`;
+        selectedCell.classList.add('is-repeat');
+    } else if (symbol === 'pausa') {
+        selectedCell.innerHTML = `<svg class="pause-svg" width="46" height="32" viewBox="0 0 100 70"><path fill="#FF0000" fill-rule="evenodd" d="M 50 0 C 77.6 0 100 15.7 100 35 C 100 54.3 77.6 70 50 70 C 22.4 70 0 54.3 0 35 C 0 15.7 22.4 0 50 0 Z M 50 11 C 41.5 11 36 21 36 35 C 36 49 41.5 59 50 59 C 58.5 59 64 49 64 35 C 64 21 58.5 11 50 11 Z" transform="rotate(-18 50 35)"/></svg>`;
+        selectedCell.classList.add('is-pause');
+    } else if (symbol === '↑') {
+        selectedCell.innerHTML = ARROW_UP_SVG;
+        selectedCell.classList.add('is-arrow');
+    } else if (symbol === 'negra') {
+        selectedCell.innerHTML = `<svg width="32" height="32" viewBox="0 0 24 24"><circle cx="9" cy="17" r="5" fill="#FF0000" style="fill: #FF0000 !important;"/><line x1="13.5" y1="17" x2="13.5" y2="3" stroke="#FF0000" stroke-width="3.5" stroke-linecap="round"/></svg>`;
+        selectedCell.classList.add('is-quarter-note');
+    } else if (symbol === '←') {
+        selectedCell.innerHTML = `<svg class="arrow-svg" width="28" height="24" viewBox="0 0 24 24"><line x1="20" y1="12" x2="4" y2="12" stroke-width="4" stroke-linecap="round"/><polyline points="11,5 4,12 11,19" fill="none" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="arrow-subnum"></span>`;
+        selectedCell.classList.add('is-left-arrow-container');
+    } else {
+        selectedCell.textContent = symbol;
+        if (symbol.length >= 3) selectedCell.classList.add('is-long-chord');
+        if (symbol === '|') selectedCell.classList.add('is-bar');
+        if (symbol === '/') selectedCell.classList.add('is-slash');
+    }
+    if (symbol !== '←') moveToNext();
+    saveState();
+}
 
-        function clearCell(cell = selectedCell) {
-            if (!cell) return;
-            cell.innerHTML = '';
-            cell.style.color = '';
-            const isSelected = cell === selectedCell;
-            cell.className = isSelected ? 'cell selected' : 'cell';
-            saveState();
-        }
+/**
+ * Inserta un símbolo de repetición seguido automáticamente por una barra de compás '|' en la celda siguiente.
+ */
+function insertRepeatBar() {
+    if (!selectedCell) return;
+    selectedCell.className = 'cell selected';
+    selectedCell.innerHTML = `<svg class="repeat-svg" width="30" height="30" viewBox="0 0 24 24"><circle cx="6.5" cy="7.5" r="3.5" fill="currentColor"/><circle cx="17.5" cy="16.5" r="3.5" fill="currentColor"/><line x1="4" y1="21" x2="20" y2="3" stroke-width="4" stroke-linecap="round"/></svg>`;
+    selectedCell.classList.add('is-repeat');
+    
+    const nextCell = selectedCell.nextElementSibling;
+    if (nextCell) {
+        selectCell(nextCell);
+        selectedCell.className = 'cell selected';
+        selectedCell.textContent = '|';
+        selectedCell.classList.add('is-bar');
+        moveToNext();
+    }
+    saveState();
+}
 
-        async function clearAllCells() { 
+/**
+ * Borra el contenido y estilos de una celda en específico.
+ */
+function clearCell(cell = selectedCell) {
+    if (!cell) return;
+    cell.innerHTML = '';
+    cell.style.color = '';
+    const isSelected = cell === selectedCell;
+    cell.className = isSelected ? 'cell selected' : 'cell';
+    saveState();
+}
+
+/**
+ * Limpia totalmente todas las celdas, nombres de fila y título de la página actual tras confirmación.
+ */
+async function clearAllCells() { 
     const confirmed = await showCustomConfirm("¿Estás seguro de que deseas borrar todas las notas y nombres de filas de esta hoja?");
     if (confirmed) { 
         document.querySelectorAll('.cell').forEach(cell => { cell.className = 'cell'; cell.innerHTML = ''; cell.style.color = ''; }); 
         document.querySelectorAll('.row-label').forEach(label => { label.textContent = ''; }); 
         document.querySelectorAll('.sheet-row').forEach(r => r.style.color = ''); 
         
-        // Limpiar también el título de la hoja actual
         const sheetTitle = document.getElementById('sheetTitle');
         if (sheetTitle) sheetTitle.textContent = '';
         if (pagesData && pagesData[activePageIndex]) {
@@ -855,12 +1016,19 @@
     } 
 }
 
-        function moveToNext() { 
-            const nextCell = selectedCell.nextElementSibling; 
-            if (nextCell) selectCell(nextCell); 
-            else { selectedCell.classList.remove('selected'); selectedCell = null; } 
-        }
-        function showCustomAlert(message) {
+/**
+ * Desplaza automáticamente el foco/foco de selección hacia la celda a la derecha.
+ */
+function moveToNext() { 
+    const nextCell = selectedCell.nextElementSibling; 
+    if (nextCell) selectCell(nextCell); 
+    else { selectedCell.classList.remove('selected'); selectedCell = null; } 
+}
+
+/**
+ * Muestra una alerta emergente personalizada con solo el botón Aceptar.
+ */
+function showCustomAlert(message) {
     return new Promise((resolve) => {
         const modal = document.getElementById('customConfirmModal');
         const msgEl = document.getElementById('customConfirmMessage');
@@ -871,7 +1039,6 @@
         btnCancel.style.display = 'none';
         modal.classList.add('active');
 
-        // Enfocar el botón Aceptar
         setTimeout(() => btnOk.focus(), 50);
 
         const cleanup = () => {
@@ -884,10 +1051,7 @@
         const handleOk = () => { cleanup(); resolve(); };
 
         const handleKeyDown = (e) => {
-            if (e.key === 'Enter' || e.key === 'Escape') {
-                e.preventDefault();
-                handleOk();
-            }
+            if (e.key === 'Enter' || e.key === 'Escape') { e.preventDefault(); handleOk(); }
         };
 
         btnOk.addEventListener('click', handleOk);
@@ -895,107 +1059,127 @@
     });
 }
 
-        function handleDeleteButton() {
-            if (!selectedCell) return;
-            if (selectedCellsList.length > 1) { clearSelectedRange(); return; }
-            let currentRow = parseInt(selectedCell.dataset.row), currentCol = parseInt(selectedCell.dataset.col);
-            if (selectedCell.innerHTML === '') { 
-                if (currentCol > 0) { 
-                    currentCol--; 
-                    const target = document.querySelector(`.cell[data-row="${currentRow}"][data-col="${currentCol}"]`); 
-                    if (target) { selectCell(target); clearCell(); } 
-                } 
-            } else { clearCell(); }
-            clearSelectionStyles();
-            if (selectedCell) selectCell(selectedCell);
-            saveState();
-        }
+/**
+ * Controla la lógica de la tecla Retroceso (Backspace) retrocediendo celdas si la actual está vacía.
+ */
+function handleDeleteButton() {
+    if (!selectedCell) return;
+    if (selectedCellsList.length > 1) { clearSelectedRange(); return; }
+    let currentRow = parseInt(selectedCell.dataset.row);
+    let currentCol = parseInt(selectedCell.dataset.col);
+    
+    if (selectedCell.innerHTML === '') { 
+        if (currentCol > 0) { 
+            currentCol--; 
+            const target = document.querySelector(`.cell[data-row="${currentRow}"][data-col="${currentCol}"]`); 
+            if (target) { selectCell(target); clearCell(); } 
+        } 
+    } else { clearCell(); }
+    
+    clearSelectionStyles();
+    if (selectedCell) selectCell(selectedCell);
+    saveState();
+}
 
-        function applyRedToSelected() {
-            if (!selectedCell) return;
-            const applyRed = (cell) => {
-                if (cell.textContent.trim() !== '' || cell.children.length > 0) {
-                    cell.style.color = "#FF0000";
-                    cell.querySelectorAll('svg *').forEach(el => {
-                        if (el.getAttribute('fill') && el.getAttribute('fill') !== 'none') el.style.fill = "#FF0000";
-                        if (el.getAttribute('stroke') && el.getAttribute('stroke') !== 'none') el.style.stroke = "#FF0000";
-                    });
-                }
-            };
-            if (typeof selectedCellsList !== 'undefined' && selectedCellsList.length > 1) {
-                selectedCellsList.forEach(cell => applyRed(cell));
-            } else { applyRed(selectedCell); }
-            saveState();
-        }
-
-        // CONTROL DE ESTADO GLOBAL (SNAPSHOT & CONTROL Z)
-        function getCurrentSnapshot() {
-            saveCurrentPageToMemory(activePageIndex); 
-            return JSON.stringify({
-                title: docTitle,
-                pages: pagesData
+/**
+ * Pinta de color rojo (#FF0000) los acordes o símbolos dentro de la selección activa.
+ */
+function applyRedToSelected() {
+    if (!selectedCell) return;
+    const applyRed = (cell) => {
+        if (cell.textContent.trim() !== '' || cell.children.length > 0) {
+            cell.style.color = "#FF0000";
+            cell.querySelectorAll('svg *').forEach(el => {
+                if (el.getAttribute('fill') && el.getAttribute('fill') !== 'none') el.style.fill = "#FF0000";
+                if (el.getAttribute('stroke') && el.getAttribute('stroke') !== 'none') el.style.stroke = "#FF0000";
             });
         }
+    };
+    if (typeof selectedCellsList !== 'undefined' && selectedCellsList.length > 1) {
+        selectedCellsList.forEach(cell => applyRed(cell));
+    } else { applyRed(selectedCell); }
+    saveState();
+}
 
-        function saveState() {
-            const snapshot = getCurrentSnapshot();
-            if (undoStack.length === 0 || undoStack[undoStack.length - 1] !== snapshot) {
-                undoStack.push(snapshot);
-                if (undoStack.length > maxUndoSteps) undoStack.shift();
-            }
-            localStorage.setItem('sheetData_v10', snapshot);
-        }
+// --- PERSISTENCIA Y REGISTRO DE HISTORIAL ---
 
-        function applySnapshot(snapshotJSON) {
-            try {
-                const data = typeof snapshotJSON === 'string' ? JSON.parse(snapshotJSON) : snapshotJSON;
-                docTitle = data.title || docTitle;
-                pagesData = data.pages || [createEmptyPageObject()];
-            } catch(e) {
-                console.error("Error al aplicar snapshot:", e);
-            }
-        }
+/**
+ * Obtiene la imagen de los datos actuales del documento en un string JSON.
+ */
+function getCurrentSnapshot() {
+    saveCurrentPageToMemory(activePageIndex); 
+    return JSON.stringify({ title: docTitle, pages: pagesData });
+}
 
-        function undoState() { 
-            if (undoStack.length > 1) { 
-                undoStack.pop(); 
-                const previousState = undoStack[undoStack.length - 1]; 
-                applySnapshot(previousState); 
-                renderPagesUI();
-                loadPageFromMemory(activePageIndex < pagesData.length ? activePageIndex : 0);
-                localStorage.setItem('sheetData_v10', previousState); 
-            } 
-        }
+/**
+ * Guarda el estado actual en la pila para la función Control + Z y en el almacenamiento de la pestaña.
+ */
+function saveState() {
+    const snapshot = getCurrentSnapshot();
+    if (undoStack.length === 0 || undoStack[undoStack.length - 1] !== snapshot) {
+        undoStack.push(snapshot);
+        if (undoStack.length > maxUndoSteps) undoStack.shift();
+    }
+    sessionStorage.setItem('sheetData_v10', snapshot);
+}
 
-        function loadState() { 
-    const saved = localStorage.getItem('sheetData_v10'); 
-    if (!saved) {
-        activePageIndex = 0;
+/**
+ * Restaura los datos del proyecto a partir de un JSON snapshot.
+ */
+function applySnapshot(snapshotJSON) {
+    try {
+        const data = typeof snapshotJSON === 'string' ? JSON.parse(snapshotJSON) : snapshotJSON;
+        docTitle = data.title || docTitle;
+        pagesData = data.pages || [createEmptyPageObject()];
+    } catch(e) {
+        console.error("Error al aplicar snapshot:", e);
+    }
+}
+
+/**
+ * Vuelve al paso anterior guardado en la pila undoStack (Control + Z).
+ */
+function undoState() { 
+    if (undoStack.length > 1) { 
+        undoStack.pop(); 
+        const previousState = undoStack[undoStack.length - 1]; 
+        applySnapshot(previousState); 
         renderPagesUI();
+        loadPageFromMemory(activePageIndex < pagesData.length ? activePageIndex : 0);
+        sessionStorage.setItem('sheetData_v10', previousState); 
+    } 
+}
+
+/**
+ * Carga el estado almacenado en el navegador al abrir la aplicación.
+ */
+function loadState() { 
+    const saved = sessionStorage.getItem('sheetData_v10'); 
+    if (!saved) {
+        docTitle = "";
+        pagesData = [createEmptyPageObject()];
+        activePageIndex = 0;
+        sheetTitle.textContent = "";
+        renderPagesUI();
+        loadPageFromMemory(0);
         return;
     }
     
     applySnapshot(saved); 
     undoStack = [saved]; 
     activePageIndex = 0;
-    
-    // Cargar Hoja 1 directamente
     loadPageFromMemory(0);
 }
 
-        // PERSISTENCIA AUTOMÁTICA AL NAVEGAR O ACTUALIZAR
-        window.addEventListener('beforeunload', () => {
-    if (pagesData && pagesData.length > 0) {
-        saveCurrentPageToMemory(activePageIndex);
-        localStorage.setItem('sheetData_v10', getCurrentSnapshot());
-    }
-});
-        // EXPORTAR PDF MULTIPÁGINA
-        async function exportToPDF() { 
+// --- EXPORTAR / IMPORTAR PDF ---
+
+/**
+ * Procesa todas las hojas, las renderiza a canvas de alta resolución y descarga el archivo PDF con metadatos incrustados.
+ */
+async function exportToPDF() { 
     if (selectedCell) selectedCell.classList.remove('selected'); 
     clearSelectionStyles(); 
     
-    // Asegurarnos de que el título de la hoja activa actual esté en memoria
     saveCurrentPageToMemory(activePageIndex);
 
     const paperElement = document.getElementById('sheetPaper');
@@ -1008,13 +1192,7 @@
         loadPageFromMemory(i);
         await waitFrame(); 
 
-        const canvas = await html2canvas(paperElement, { 
-            scale: 2, 
-            backgroundColor: '#000000', 
-            useCORS: true, 
-            logging: false 
-        });
-        
+        const canvas = await html2canvas(paperElement, { scale: 2, backgroundColor: '#000000', useCORS: true, logging: false });
         const imgData = canvas.toDataURL('image/jpeg', 0.85);
 
         if (i > 0) pdf.addPage();
@@ -1030,24 +1208,21 @@
         pdf.addImage(imgData, 'JPEG', xOffset, yOffset, renderWidth, renderHeight);
     }
 
+    // Fijar zoom al 90%
+    function setFixed90Zoom() { document.body.style.zoom = "90%"; }
+    setFixed90Zoom();
+
     loadPageFromMemory(originalActivePage);
 
-    // Asegurar que docTitle tenga el nombre global si no se ha definido
     if (!docTitle || docTitle === "") {
         docTitle = pagesData[0]?.title || "GORRION";
     }
 
-    const currentStateStr = JSON.stringify({
-        title: docTitle,
-        pages: pagesData
-    });
-    
+    // Incrustar el estado JSON en base64 en la propiedad 'Subject' del PDF para poder reeditarlo
+    const currentStateStr = JSON.stringify({ title: docTitle, pages: pagesData });
     const encodedData = btoa(unescape(encodeURIComponent(currentStateStr)));
 
-    pdf.setProperties({
-        title: docTitle,
-        subject: encodedData
-    });
+    pdf.setProperties({ title: docTitle, subject: encodedData });
 
     const formattedTitle = docTitle.trim().toLowerCase().split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
     pdf.save(`${formattedTitle || 'Partitura'}.pdf`); 
@@ -1055,8 +1230,10 @@
     if (selectedCell) selectCell(selectedCell); 
 }
 
-        // IMPORTAR PDF CON MULTIPÁGINA
-        async function importPDFWithMetadata(event) {
+/**
+ * Abre un PDF generado por la aplicación, extrae los datos JSON metidos en 'Subject' y restaura las hojas editables.
+ */
+async function importPDFWithMetadata(event) {
     const file = event.target.files[0];
     if (!file) return;
 
@@ -1077,19 +1254,13 @@
             }
         }
 
-        if (!loadedState && metadata && metadata.info && metadata.info.Keywords) {
-            try { loadedState = JSON.parse(metadata.info.Keywords); } catch(e) {}
-        }
-
         if (loadedState) {
             docTitle = loadedState.title || docTitle;
             pagesData = loadedState.pages || [];
             activePageIndex = 0;
 
-            // Renderizamos la UI primero y luego cargamos la memoria directamente
             renderPagesUI();
             
-            // Carga limpia de la primera página sin guardar antes
             const pageObj = pagesData[0] || createEmptyPageObject();
             document.querySelectorAll('.cell').forEach(cell => { cell.className = 'cell'; cell.innerHTML = ''; cell.style.color = ''; });
             const labelDivs = document.querySelectorAll('.row-label');
@@ -1139,6 +1310,9 @@
     event.target.value = "";
 }
 
+// Inicializar estado al cargar la página en el navegador
+loadState();
+
         loadState();
     </script>
 
@@ -1151,6 +1325,8 @@
             </div>
         </div>
     </div>
+
+    
 
 </body>
 </html>
