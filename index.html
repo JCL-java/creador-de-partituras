@@ -1193,15 +1193,30 @@ async function exportToPDF() {
 
     const paperElement = document.getElementById('sheetPaper');
     const { jsPDF } = window.jspdf;
+    
+    // Configuración PDF Landscape A4
     const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4', compress: true }); 
 
     const originalActivePage = activePageIndex;
+
+    // Congelar el overflow del body temporalmente para que no aparezcan barras de scroll
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
 
     for (let i = 0; i < pagesData.length; i++) {
         loadPageFromMemory(i);
         await waitFrame(); 
 
-        const canvas = await html2canvas(paperElement, { scale: 2, backgroundColor: '#000000', useCORS: true, logging: false });
+        const canvas = await html2canvas(paperElement, { 
+            scale: 2, 
+            backgroundColor: '#000000', 
+            useCORS: true, 
+            logging: false,
+            // Forzar dimensiones exactas en la captura para evitar estiramientos
+            width: paperElement.offsetWidth,
+            height: paperElement.offsetHeight
+        });
+
         const imgData = canvas.toDataURL('image/jpeg', 0.85);
 
         if (i > 0) pdf.addPage();
@@ -1217,17 +1232,15 @@ async function exportToPDF() {
         pdf.addImage(imgData, 'JPEG', xOffset, yOffset, renderWidth, renderHeight);
     }
 
-    // Fijar zoom al 90%
-    function setFixed90Zoom() { document.body.style.zoom = "90%"; }
-    setFixed90Zoom();
-
+    // Restaurar estado visual y scroll original
+    document.body.style.overflow = originalOverflow;
     loadPageFromMemory(originalActivePage);
 
     if (!docTitle || docTitle === "") {
         docTitle = pagesData[0]?.title || "GORRION";
     }
 
-    // Incrustar el estado JSON en base64 en la propiedad 'Subject' del PDF para poder reeditarlo
+    // Incrustar metadata
     const currentStateStr = JSON.stringify({ title: docTitle, pages: pagesData });
     const encodedData = btoa(unescape(encodeURIComponent(currentStateStr)));
 
