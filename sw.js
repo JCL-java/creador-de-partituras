@@ -1,4 +1,4 @@
-const CACHE_NAME = 'partituras-app-v2';
+const CACHE_NAME = 'partituras-app-v3';
 const ASSETS = [
     './',
     './index.html',
