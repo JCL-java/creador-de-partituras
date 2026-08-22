@@ -1246,8 +1246,10 @@ async function exportToPDF() {
 
     pdf.setProperties({ title: docTitle, subject: encodedData });
 
-    const formattedTitle = docTitle.trim().toLowerCase().split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-    pdf.save(`${formattedTitle || 'Partitura'}.pdf`); 
+    const cleanTitle = docTitle.trim().replace(/\s+/g, ' ');
+const formattedTitle = cleanTitle.replace(/\b[a-z]/g, char => char.toUpperCase());
+
+pdf.save(`${formattedTitle || 'Partitura'}.pdf`);
 
     if (selectedCell) selectCell(selectedCell); 
 }
