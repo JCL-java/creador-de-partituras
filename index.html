@@ -213,12 +213,38 @@
         .main-content { flex: 1; padding: 20px; background-color: #0b0f19; overflow: auto; display: flex; justify-content: center; align-items: center; height: 100vh; box-sizing: border-box; }
         .paper { background-color: #000000 !important; color: #ffffff; width: 100%; max-width: 1400px; aspect-ratio: 297 / 210; padding: 20px 45px 25px 45px; border: 2px solid #1e293b; border-radius: 4px; display: flex; flex-direction: column; box-sizing: border-box; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6); overflow: hidden; }
 
-        .sheet-title { text-align: center; font-size: 2.0rem; font-weight: 900; outline: none; margin-bottom: 8px; text-transform: uppercase; color: #FFFFFF; letter-spacing: 1px; line-height: 1; }
+        .sheet-title { 
+    text-align: center; 
+    font-size: 2.0rem; 
+    font-weight: 900; 
+    outline: none; 
+    margin-bottom: 8px; 
+    text-transform: uppercase; /* <-- FORZAR MAYÚSCULAS VISUALES */
+    color: #FFFFFF; 
+    letter-spacing: 1px; 
+    line-height: 1; 
+}
 
         /* --- FILAS Y CELDAS --- */
         .rows-container { display: flex; flex-direction: column; justify-content: flex-start; gap: 20px; flex: 1; overflow: hidden; margin-top: 5px; }
         .sheet-row { display: flex; align-items: center; width: 100%; height: 36px; gap: 8px; position: relative; }
-        .row-label { width: 130px; min-width: 130px; max-width: 130px; font-weight: 700; font-size: 1.4rem; outline: none; border-bottom: none; padding-right: 4px; color: inherit; white-space: nowrap; overflow: hidden; transition: background-color 0.2s; }
+        .row-label { 
+    width: 130px; 
+    min-width: 130px; 
+    max-width: 130px; 
+    font-weight: 700; 
+    font-size: 1.4rem; 
+    outline: none; 
+    border-bottom: none; 
+    padding-right: 4px; 
+    color: inherit; 
+    white-space: pre-wrap !important; 
+    word-break: break-word !important; 
+    line-height: 1.2 !important; 
+    height: auto !important;          /* Permite crecer verticalmente */
+    display: block !important;         /* Fuerza comportamiento de bloque */
+    overflow: visible !important;
+}
         .row-label:focus { background-color: #1f2937; outline: none; }
         .row-cells { display: grid; grid-template-columns: repeat(32, minmax(0, 1fr)); align-items: center; flex: 1; height: 100%; gap: 4px; margin-left: 10px; }
 
@@ -415,7 +441,7 @@ const maxCols = 31;             // Total de columnas por fila (0 a 31 = 32 colum
 const maxRows = 15;             // Total de filas por hoja (0 a 15 = 16 filas)
 
 // --- ESTRUCTURA Y NAVEGACIÓN MULTIPÁGINA ---
-let docTitle = "GORRION";       // Título global predeterminado para el documento
+let docTitle = "";       // Título global predeterminado para el documento
 let activePageIndex = 0;        // Índice de la hoja actual visible en pantalla
 let pagesData = [ createEmptyPageObject() ]; // Colección que almacena la información de todas las hojas
 
@@ -495,14 +521,21 @@ document.addEventListener('mouseup', () => {
 
 // Evento que sincroniza el título ingresado en el lienzo con los datos globales
 sheetTitle.addEventListener('input', () => {
-    const fullText = sheetTitle.textContent.trim();
+    // Usamos textContent directo
+    const rawText = sheetTitle.textContent; 
+    const fullText = rawText.trim();
+    
     if (pagesData[activePageIndex]) {
-        pagesData[activePageIndex].title = fullText;
+        pagesData[activePageIndex].title = rawText; // Mantiene minúsculas/mayúsculas exactas
     }
+    
     const match = fullText.match(/^(.*?)(?:\s+\d+)?$/);
     if (match && match[1].trim() !== "") {
         docTitle = match[1].trim();
+    } else {
+        docTitle = fullText;
     }
+    
     saveState();
 });
 
@@ -547,6 +580,16 @@ function showCustomConfirm(message) {
 
 // --- GESTIÓN Y RENDERING DE HAPAS/PÁGINAS ---
 
+
+window.updateHeaderTitle = function() {
+  const titleEl = document.getElementById('docTitle') || document.querySelector('.doc-title');
+  if (titleEl) {
+    if (titleEl.tagName === 'INPUT') titleEl.value = docTitle;
+    else titleEl.textContent = docTitle;
+  }
+};
+
+
 /**
  * Vuelve a dibujar los botones de las hojas ("Hoja 1", "Hoja 2", etc.) en el panel lateral.
  */
@@ -565,11 +608,10 @@ function renderPagesUI() {
 /**
  * Actualiza el encabezado del lienzo con el título de la hoja activa.
  */
-function updateHeaderTitle() {
-    const pageObj = pagesData[activePageIndex];
-    if (pageObj) {
-        sheetTitle.textContent = pageObj.title || "";
-    }
+function updateLabelData(index, element) {
+    // Convierte saltos de línea de HTML a \n limpios
+    let text = element.innerText || element.textContent;
+    labelsData[index] = text;
 }
 
 /**
@@ -594,7 +636,7 @@ function saveCurrentPageToMemory(pageIndex = activePageIndex) {
             pagesData[pageIndex].cells.push({
                 row: cell.dataset.row,
                 col: cell.dataset.col,
-                className: cell.className.replace('selected', '').replace('multi-selected', '').trim(),
+                className: cell.className.replace(/\b(selected|multi-selected)\b/g, '').replace(/\s+/g, ' ').trim(),
                 html: cell.innerHTML,
                 color: cell.style.color || ''
             });
@@ -1134,10 +1176,24 @@ function saveState() {
 function applySnapshot(snapshotJSON) {
     try {
         const data = typeof snapshotJSON === 'string' ? JSON.parse(snapshotJSON) : snapshotJSON;
+        
         docTitle = data.title || docTitle;
-        pagesData = data.pages || [createEmptyPageObject()];
-        // Restauramos el índice guardado; si no existe, por defecto es 0
-        activePageIndex = (typeof data.activePageIndex === 'number' && data.activePageIndex < pagesData.length) ? data.activePageIndex : 0;
+
+        // --- MANEJO DE RETROCOMPATIBILIDAD ---
+        if (data.pages && Array.isArray(data.pages)) {
+            // Formato NUEVO (Multipágina)
+            pagesData = data.pages;
+            activePageIndex = (typeof data.activePageIndex === 'number' && data.activePageIndex < pagesData.length) ? data.activePageIndex : 0;
+        } else {
+            // Formato ANTIGUO (Una sola página directa)
+            pagesData = [{
+                title: data.title || "",
+                labels: data.labels || [...defaultLabels],
+                rowColors: data.rowColors || {},
+                cells: data.cells || []
+            }];
+            activePageIndex = 0;
+        }
     } catch(e) {
         console.error("Error al aplicar snapshot:", e);
     }
@@ -1186,7 +1242,12 @@ function loadState() {
  * Procesa todas las hojas, las renderiza a canvas de alta resolución y descarga el archivo PDF con metadatos incrustados.
  */
 async function exportToPDF() { 
-    if (selectedCell) selectedCell.classList.remove('selected'); 
+
+if (document.activeElement) {
+        document.activeElement.blur();
+    }
+    
+    if (selectedCell) selectedCell.classList.remove('selected');
     clearSelectionStyles(); 
     
     saveCurrentPageToMemory(activePageIndex);
@@ -1244,12 +1305,16 @@ async function exportToPDF() {
     const currentStateStr = JSON.stringify({ title: docTitle, pages: pagesData });
     const encodedData = btoa(unescape(encodeURIComponent(currentStateStr)));
 
-    pdf.setProperties({ title: docTitle, subject: encodedData });
+   pdf.setProperties({ title: docTitle, subject: encodedData });
 
-    const cleanTitle = docTitle.trim().replace(/\s+/g, ' ');
-const formattedTitle = cleanTitle.replace(/\b[a-z]/g, char => char.toUpperCase());
+const rawTitle = docTitle.trim() || 'Partitura';
 
-pdf.save(`${formattedTitle || 'Partitura'}.pdf`);
+// Transforma la primera letra de cada palabra a mayúscula y el resto a minúscula
+const formattedTitle = rawTitle
+    .toLowerCase()
+    .replace(/(^|\s+)[a-záéíóúñ]/g, (letter) => letter.toUpperCase());
+
+pdf.save(`${formattedTitle}.pdf`);
 
     if (selectedCell) selectCell(selectedCell); 
 }
@@ -1268,76 +1333,79 @@ async function importPDFWithMetadata(event) {
 
         let loadedState = null;
         const metadata = await pdf.getMetadata();
-        
-        if (metadata && metadata.info && metadata.info.Subject) {
-            try {
-                const decodedStr = decodeURIComponent(escape(atob(metadata.info.Subject)));
-                loadedState = JSON.parse(decodedStr);
-            } catch(e) {
-                console.warn("No se pudo decodificar Subject...");
-            }
+
+        if (metadata && metadata.info) {
+  const rawData = metadata.info.Subject || metadata.info.Keywords || metadata.info.Title;
+  if (rawData) {
+    // 1. Probar Base64 estándar (Python clásico)
+    try {
+      loadedState = JSON.parse(atob(rawData));
+    } catch (e1) {
+      // 2. Probar Base64 + URI Component (jsPDF web)
+      try {
+        loadedState = JSON.parse(decodeURIComponent(escape(atob(rawData))));
+      } catch (e2) {
+        // 3. Probar URI Component directo (sin base64)
+        try {
+          loadedState = JSON.parse(decodeURIComponent(rawData));
+        } catch (e3) {
+          // 4. Probar JSON plano en texto claro
+          try {
+            loadedState = JSON.parse(rawData);
+          } catch (e4) {
+            console.warn("No se pudo parsear el metadato con ninguna estrategia conocida.");
+          }
         }
+      }
+    }
+  }
+}
 
         if (loadedState) {
-            docTitle = loadedState.title || docTitle;
-            pagesData = loadedState.pages || [];
-            activePageIndex = 0;
+      // Normalización garantizada para evitar pantalla negra / errores de render
+      if (!loadedState.pages || !Array.isArray(loadedState.pages)) {
+        loadedState = {
+          title: loadedState.title || "",
+          pages: [{
+            title: loadedState.title || "",
+            labels: loadedState.labels || [...defaultLabels],
+            rowColors: loadedState.rowColors || {},
+            cells: loadedState.cells || []
+          }]
+        };
+      } else {
+        // Aseguramos que cada hoja dentro de 'pages' tenga sus arrays limpios
+        loadedState.pages = loadedState.pages.map(page => ({
+          title: page.title || "",
+          labels: page.labels || [...defaultLabels],
+          rowColors: page.rowColors || {},
+          cells: page.cells || []
+        }));
+      }
 
-            renderPagesUI();
-            
-            const pageObj = pagesData[0] || createEmptyPageObject();
-            document.querySelectorAll('.cell').forEach(cell => { cell.className = 'cell'; cell.innerHTML = ''; cell.style.color = ''; });
-            const labelDivs = document.querySelectorAll('.row-label');
-            labelDivs.forEach((lDiv, i) => { lDiv.textContent = pageObj.labels[i] || ""; });
+      docTitle = loadedState.title || docTitle;
+      pagesData = loadedState.pages;
+      activePageIndex = 0;
 
-            document.querySelectorAll('.sheet-row').forEach(r => r.style.color = '');
-            if (pageObj.rowColors) {
-                Object.keys(pageObj.rowColors).forEach(rowIndex => {
-                    const targetRow = document.querySelector(`.sheet-row[data-row-index="${rowIndex}"]`);
-                    if (targetRow) targetRow.style.color = pageObj.rowColors[rowIndex];
-                });
-            }
+      renderPagesUI();
+      loadPageFromMemory(0);
 
-            if (pageObj.cells) {
-                pageObj.cells.forEach(cData => {
-                    const cell = document.querySelector(`.cell[data-row="${cData.row}"][data-col="${cData.col}"]`);
-                    if (cell) {
-                        let rawClasses = cData.className.split(' ').filter(cls => cls !== 'cell' && cls !== 'selected' && cls !== 'multi-selected');
-                        let cellContent = cData.html;
-                        if (cellContent.includes('↑') || cellContent.trim() === '↑' || rawClasses.includes('is-arrow')) {
-                            cellContent = ARROW_UP_SVG;
-                            if (!rawClasses.includes('is-arrow')) rawClasses.push('is-arrow');
-                        }
-                        cell.className = 'cell ' + rawClasses.join(' ');
-                        cell.innerHTML = cellContent;
-                        if (cData.color) cell.style.color = cData.color;
-                    }
-                });
-            }
+      undoStack = [getCurrentSnapshot()];
+      sessionStorage.setItem('sheetData_v10', getCurrentSnapshot());
 
-            sheetTitle.textContent = pageObj.title || "";
-
-            const firstCell = document.querySelector('.cell[data-row="0"][data-col="0"]');
-            if (firstCell) selectCell(firstCell);
-
-            undoStack = [getCurrentSnapshot()];
-            localStorage.setItem('sheetData_v10', getCurrentSnapshot());
-
-            await showCustomAlert(`Partitura "${docTitle}" importada con éxito (${pagesData.length} hoja/s).`);
-        } else {
-            await showCustomAlert("Este PDF no contiene datos editables válidos.");
-        }
-    } catch (error) {
-        console.error("Error al cargar PDF:", error);
-        await showCustomAlert("Ocurrió un error al procesar el PDF.");
+      await showCustomAlert(`Partitura "${docTitle}" importada con éxito (${pagesData.length} hoja/s).`);
+    } else {
+      await showCustomAlert("Este PDF no contiene datos editables válidos.");
     }
-    event.target.value = "";
+  } catch (error) {
+    console.error("Error al cargar PDF:", error);
+    await showCustomAlert("Ocurrió un error al procesar el PDF.");
+  }
+  event.target.value = "";
 }
 
 // Inicializar estado al cargar la página en el navegador
 loadState();
-
-        loadState();
     </script>
 
     <!-- 2. Tu Modal de Confirmación HTML -->
