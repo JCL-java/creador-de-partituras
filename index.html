@@ -521,20 +521,14 @@ document.addEventListener('mouseup', () => {
 
 // Evento que sincroniza el título ingresado en el lienzo con los datos globales
 sheetTitle.addEventListener('input', () => {
-    // Usamos textContent directo
     const rawText = sheetTitle.textContent; 
-    const fullText = rawText.trim();
     
     if (pagesData[activePageIndex]) {
-        pagesData[activePageIndex].title = rawText; // Mantiene minúsculas/mayúsculas exactas
+        pagesData[activePageIndex].title = rawText;
     }
     
-    const match = fullText.match(/^(.*?)(?:\s+\d+)?$/);
-    if (match && match[1].trim() !== "") {
-        docTitle = match[1].trim();
-    } else {
-        docTitle = fullText;
-    }
+    // Asigna el texto tal cual sin recortar números al final
+    docTitle = rawText.trim();
     
     saveState();
 });
@@ -1297,24 +1291,20 @@ if (document.activeElement) {
     document.body.style.overflow = originalOverflow;
     loadPageFromMemory(originalActivePage);
 
-    if (!docTitle || docTitle === "") {
-        docTitle = pagesData[0]?.title || "GORRION";
-    }
+    // Define el título completo respetando el texto escrito o el de la página 1
+    const titleToUse = docTitle.trim() || pagesData[0]?.title?.trim() || "Partitura";
 
-    // Incrustar metadata
-    const currentStateStr = JSON.stringify({ title: docTitle, pages: pagesData });
+    // Incrustar metadata con el título completo
+    const currentStateStr = JSON.stringify({ title: titleToUse, pages: pagesData });
     const encodedData = btoa(unescape(encodeURIComponent(currentStateStr)));
+    pdf.setProperties({ title: titleToUse, subject: encodedData });
 
-   pdf.setProperties({ title: docTitle, subject: encodedData });
+    // Aplica Mayúscula Inicial a cada palabra manteniendo números intactos (ej: 22224)
+    const formattedTitle = titleToUse
+        .toLowerCase()
+        .replace(/(^|\s+)[a-záéíóúñ]/g, (letter) => letter.toUpperCase());
 
-const rawTitle = docTitle.trim() || 'Partitura';
-
-// Transforma la primera letra de cada palabra a mayúscula y el resto a minúscula
-const formattedTitle = rawTitle
-    .toLowerCase()
-    .replace(/(^|\s+)[a-záéíóúñ]/g, (letter) => letter.toUpperCase());
-
-pdf.save(`${formattedTitle}.pdf`);
+    pdf.save(`${formattedTitle}.pdf`);
 
     if (selectedCell) selectCell(selectedCell); 
 }
