@@ -1,4 +1,4 @@
-const CACHE_NAME = 'partituras-app-v6';
+const CACHE_NAME = 'partituras-app-v7';
 const ASSETS = [
     './',
     './index.html',
@@ -11,12 +11,22 @@ self.addEventListener('install', (event) => {
     event.waitUntil(
         caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
     );
-    self.skipWaiting();
+    self.skipWaiting(); // Fuerza a tomar el control inmediatamente
 });
 
-// Activación: Toma el control de la app inmediatamente
+// Activación: Elimina cachés antiguos y toma el control
 self.addEventListener('activate', (event) => {
-    event.waitUntil(self.clients.claim());
+    event.waitUntil(
+        caches.keys().then((cacheNames) => {
+            return Promise.all(
+                cacheNames.map((cache) => {
+                    if (cache !== CACHE_NAME) {
+                        return caches.delete(cache); // Borra cachés viejos
+                    }
+                })
+            );
+        }).then(() => self.clients.claim())
+    );
 });
 
 // Estrategia Network-First para HTML (Siempre busca la versión más reciente online)
