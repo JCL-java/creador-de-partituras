@@ -620,7 +620,12 @@ function saveCurrentPageToMemory(pageIndex = activePageIndex) {
     pagesData[pageIndex].rowColors = {};
     pagesData[pageIndex].cells = [];
     
-    document.querySelectorAll('.row-label').forEach(label => pagesData[pageIndex].labels.push(label.textContent));
+    // Captura saltos de línea manteniendo los retornos de carro limpios
+    document.querySelectorAll('.row-label').forEach(label => {
+        let cleanText = label.innerText.replace(/\r\n/g, '\n');
+        pagesData[pageIndex].labels.push(cleanText);
+    });
+
     document.querySelectorAll('.sheet-row').forEach(row => { 
         if (row.style.color) pagesData[pageIndex].rowColors[row.dataset.rowIndex] = row.style.color; 
     });
@@ -660,10 +665,13 @@ function loadPageFromMemory(index) {
 
     const pageObj = pagesData[index];
 
-    // Cargar título y nombres de filas
+    // Cargar título y nombres de filas respetando los saltos de línea con innerHTML
     sheetTitle.textContent = pageObj.title || "";
     const labelDivs = document.querySelectorAll('.row-label');
-    labelDivs.forEach((lDiv, i) => { lDiv.textContent = pageObj.labels[i] || ""; });
+    labelDivs.forEach((lDiv, i) => { 
+        const rawLabel = pageObj.labels[i] || "";
+        lDiv.innerHTML = rawLabel.replace(/\n/g, '<br>'); 
+    });
 
     // Cargar colores asignados a las filas
     if (pageObj.rowColors) {
@@ -1412,12 +1420,21 @@ loadState();
     <!-- 3. Registro del Service Worker dentro de su propia etiqueta <script> -->
     <script>
         if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js')
-                    .then(() => console.log('PWA registrada correctamente'))
-                    .catch((err) => console.log('Error al registrar PWA:', err));
-            });
+    let refreshing = false;
+
+    // Detecta cuando el nuevo Service Worker toma el control y recarga la página
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (!refreshing) {
+            refreshing = true;
+            window.location.reload();
         }
+    });
+
+    navigator.serviceWorker.register('./sw.js').then((reg) => {
+        // Le pide al navegador que busque updates del SW cada vez que abren la app
+        reg.update();
+    });
+}
     </script>
 
 </body>
